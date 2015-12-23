@@ -51,3 +51,6 @@ sudo apt-get install gparted -y
 ./install_unix_basic.sh
 ./install_social.sh
 ./install_firefox_addons.sh
+./install_dev_eco.sh
+./install_ruby_eco.sh
+./install_python_eco.sh
