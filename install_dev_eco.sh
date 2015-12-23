@@ -19,3 +19,13 @@ cp geany-themes/colorschemes/* ~/.config/geany/colorschemes/
 cd $OLD
 
 # VirtualBox
+dist=`lsb_release -d | cut -f2`
+dist_codename=`lsb_release -c | cut -f2`
+html_line=`curl https://www.virtualbox.org/wiki/Linux_Downloads | grep "$dist" | grep -i "$dist_codename"`
+download_link=`echo $html_line | sed "s/.*i386.deb//" | sed s/.*href=// | sed s/\>.*//`
+download_link=`python -c "print(${download_link}.strip())"`
+
+wget "$download_link"
+sudo dpkg -i virtualbox*${dist_codename}*.deb
+sudo apt-get -f install -y
+#sudo /sbin/rcvboxdrv setup
