@@ -36,21 +36,16 @@ sudo add-apt-repository ppa:videolan/stable-daily -y
 sudo apt-get update
 sudo apt-get install vlc -y
 
-# Graphics
-sudo apt-get install gimp inkscape -y
-
-# Web & net
-sudo apt-get install wireshark -y
+# Other
 sudo apt-get install chromium-browser -y
 sudo apt-get install deluge -y
 
-# System tools
-sudo apt-get install gparted -y
-
 # Installation
 ./install_unix_basic.sh
+./install_unix_extra.sh
 ./install_social.sh
 ./install_firefox_addons.sh
 ./install_dev_eco.sh
 ./install_ruby_eco.sh
 ./install_python_eco.sh
+./install_artsy_eco.sh

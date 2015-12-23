@@ -6,9 +6,6 @@ sudo groupadd docker
 sudo gpasswd -a $USER docker
 sudo service docker restart
 
-# VirtualBox
-
-
 # IDEs
 sudo add-apt-repository ppa:webupd8team/atom -y
 sudo apt-get update
@@ -20,3 +17,5 @@ git clone https://github.com/codebrainz/geany-themes.git
 mkdir -p ~/.config/geany/colorschemes/
 cp geany-themes/colorschemes/* ~/.config/geany/colorschemes/
 cd $OLD
+
+# VirtualBox
