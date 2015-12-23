@@ -12,6 +12,9 @@ rvm get stable --autolibs=enable
 rvm install ruby
 rvm --default use ruby
 
+# Install pry and extended documentation
+gem install pry --pry-doc
+
 # Install Rails
 gem install rails
 
