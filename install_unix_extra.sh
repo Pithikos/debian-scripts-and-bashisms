@@ -6,5 +6,5 @@ sudo apt-get install gparted -y
 
 # Wireshark
 sudo apt-get install wireshark -y
-sudo dpkg-reconfigure wireshark-common 
-sudo usermod -a -G wireshark $USER
+sudo dpkg-reconfigure wireshark-common
+sudo adduser $USER wireshark
