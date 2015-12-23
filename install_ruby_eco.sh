@@ -7,7 +7,7 @@ curl -sSL https://rvm.io/mpapis.asc | gpg --import -
 \curl -L https://get.rvm.io | bash -s stable --ruby
 
 # Let RVM install Ruby
-source /home/manos/.rvm/scripts/rvm
+echo 'source /home/manos/.rvm/scripts/rvm' >> ~/.bashrc
 rvm get stable --autolibs=enable
 rvm install ruby
 rvm --default use ruby
