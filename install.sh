@@ -51,7 +51,7 @@ sudo apt-get install deluge -y
 
 
 # Dev
-sudo apt-get install docker -y
+sudo apt-get install docker.io -y
 
 sudo add-apt-repository ppa:webupd8team/atom -y
 sudo apt-get update
