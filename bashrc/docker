@@ -2,5 +2,5 @@
 # Watches over docker containers running without taking
 # the whole screen
 #
-cmd_watchdocker="watch \"docker ps -q | xargs docker inspect --format '{{.Id}}@{{.Config.Image}}@{{.Config.Cmd}}@{{range \\\$p, \\\$conf := .NetworkSettings.Ports}}@{{\\\$p}}->{{(index \\\$conf 0).HostPort}} {{end}}' | column -t -s='@' | cut -c 1-5,64-\""
+cmd_watchdocker="watch \"docker ps -q | xargs docker inspect --format '{{.Id}}@{{.Config.Image}}@{{.Config.Cmd}}@{{range \\\$p, \\\$conf := .NetworkSettings.Ports}}@{{\\\$p}}->{{(index \\\$conf 0).HostPort}} {{end}}@{{.NetworkSettings.IPAddress}}' | column -t -s='@' | cut -c 1-5,64-\""
 alias watchdocker='eval $cmd_watchdocker'
