@@ -8,3 +8,6 @@ sudo apt-get install gparted -y
 sudo apt-get install wireshark -y
 sudo dpkg-reconfigure wireshark-common
 sudo adduser $USER wireshark
+
+# GUI for nmap
+sudo apt-get install zenmap
