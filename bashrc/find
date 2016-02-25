@@ -1,0 +1,3 @@
+function fuzzyfind {
+  find . -iname "*${1}*"
+}
