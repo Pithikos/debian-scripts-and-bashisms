@@ -18,6 +18,19 @@ mkdir -p ~/.config/geany/colorschemes/
 cp geany-themes/colorschemes/* ~/.config/geany/colorschemes/
 cd $OLD
 
+
+# Oh my git
+cd /tmp
+git clone http://github.com/gabrielelana/awesome-terminal-fonts
+cd awesome-terminal-fonts
+git checkout patching-strategy
+mkdir -p ~/.fonts
+cp patched/*.ttf ~/.fonts
+sudo fc-cache -fv ~/.fonts
+# MANUALSTEP: set terminal font to sourcecodepro+..
+# MANUALSTEP: set the red color from the terminal pallete to orange..
+
+
 # VirtualBox
 #dist=`lsb_release -d | cut -f2`
 #dist_codename=`lsb_release -c | cut -f2`
