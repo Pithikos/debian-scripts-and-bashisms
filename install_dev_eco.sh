@@ -2,7 +2,7 @@
 
 # Version control
 sudo apt-get update
-sudo apt-get install git subversion -y
+sudo apt-get install git subversion git-svn -y
 
 # Install Docker
 sudo apt-get install docker.io -y
