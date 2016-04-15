@@ -1,0 +1,3 @@
+function fuzzylog {
+  egrep -i -r "$1" /var/log
+}
