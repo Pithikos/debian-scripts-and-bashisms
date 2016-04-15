@@ -1,5 +1,9 @@
 #!/bin/sh
 
+# Version control
+sudo apt-get update
+sudo apt-get install git subversion -y
+
 # Install Docker
 sudo apt-get install docker.io -y
 sudo groupadd docker
