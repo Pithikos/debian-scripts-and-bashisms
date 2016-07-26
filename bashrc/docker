@@ -1,3 +1,11 @@
+function last_container {
+  docker exec -it $(last_container_id) bash
+}
+
+function last_container_id {
+  docker ps -q | tail -n 1
+}
+
 #
 # Watches over docker containers running without taking
 # the whole screen
