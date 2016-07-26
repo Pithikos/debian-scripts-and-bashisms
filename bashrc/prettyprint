@@ -1,1 +1,6 @@
 alias json='python -mjson.tool | pygmentize -l json'
+
+# Example: echo '<h1>test</h1>' | html2text
+function html2text {
+  sed 's/\\r//g' | sed 's/\\n//g' | lynx --dump --width 80 -stdin
+}
