@@ -1,5 +1,9 @@
 function last_container {
-  docker exec -it $(last_container_id) bash
+  if [[ $(last_container_id) ]]; then
+    docker exec -it $(last_container_id) bash
+  else
+    echo "No containers running."
+  fi
 }
 
 function last_container_id {
