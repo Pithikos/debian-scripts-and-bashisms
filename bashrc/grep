@@ -1,0 +1,3 @@
+function fuzzygrep {
+  egrep -i -r "$1" .
+}
