@@ -1,0 +1,24 @@
+# Compact history
+export HISTCONTROL=erasedups
+
+# Infinite history
+export HISTSIZE=
+export HISTFILESIZE=
+
+# Sync history across different sessions
+shopt -s histappend
+
+# Stire multiline commands as single line
+shopt -s cmdhist
+
+# Show timestamps
+HISTTIMEFORMAT=`echo -e "\e[90m%F %T \e[39m"`
+
+# Leave out from history
+HISTIGNORE='ls:history:bg:fg:cd'
+
+# Fix misspellings (ls /ohme --> ls /home)
+shopt -s cdspell
+
+# cd by typing the dir name
+shopt -s autocd
