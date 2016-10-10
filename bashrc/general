@@ -15,7 +15,7 @@ shopt -s cmdhist
 HISTTIMEFORMAT=`echo -e "\e[90m%F %T \e[39m"`
 
 # Leave out from history
-HISTIGNORE='ls *:history *:cd *:ls:history:cd'
+HISTIGNORE='ls *:history *:ls:history:clear'
 
 # Fix misspellings (ls /ohme --> ls /home)
 shopt -s cdspell
