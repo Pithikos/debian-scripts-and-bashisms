@@ -17,13 +17,13 @@ function last_container_id {
 function _docker_ps_compact {
   if [[ $(docker ps -q) ]]; then
     DELI='|'
-    delimeted_output=`docker ps -q | xargs docker inspect --format="{{.Id}}$DELI{{.Config.Image}}$DELI{{.Config.Cmd}}$DELI{{range \\\$p, \\\$conf := .NetworkSettings.Ports}}{{\\\$p}}->{{(index \\$conf 0).HostPort}}{{end}}$DELI{{.NetworkSettings.IPAddress}}"`
+    delimeted_output=`docker ps -q | xargs docker inspect --format="{{.Id}}$DELI\e[1m{{.Config.Image}}\e[0m$DELI\e[2m{{.Config.Cmd}}\e[0m$DELI{{range \\\$p, \\\$conf := .NetworkSettings.Ports}}\e[34m{{\\\$p}}\e[0m->\e[34m{{(index \\$conf 0).HostPort}}\e[0m{{end}}$DELI\e[92m{{.NetworkSettings.IPAddress}}\e[0m"`
     columnized_output=`echo "$delimeted_output" | sed "s/$DELI$DELI/$DELI  $DELI/g" | column -t -s=$DELI`
     filtered_output=`echo "$columnized_output" | cut -c 1-6,65-`
-    echo "$filtered_output"
+    echo -e "$filtered_output"
   else
     echo "No containers running."
   fi
 }
 export -f _docker_ps_compact
-alias watchdocker='watch bash -c _docker_ps_compact'
+alias watchdocker='watch --color bash -c _docker_ps_compact'
