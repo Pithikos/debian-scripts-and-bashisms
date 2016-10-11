@@ -23,7 +23,7 @@ function perldoc() { command perldoc -n less "$@" |man -l -; }
 
 # Prettyprint from common commands
 # Prerequisites: sudo apt-get install grc
-alias ping='grc 2> /dev/null && grc ping'
-alias netstat='grc 2> /dev/null && grc netstat'
-alias tail='grc 2> /dev/null && grc tail'
-alias head='grc 2> /dev/null && grc head'
+alias ping='grc ping'
+alias netstat='grc netstat'
+alias tail='grc tail'
+alias head='grc head'
