@@ -1,3 +1,4 @@
+# Shell to the last container
 function last_container {
   if [[ $(last_container_id) ]]; then
     docker exec -it $(last_container_id) bash
@@ -6,13 +7,23 @@ function last_container {
   fi
 }
 
+# Gives the ID of the last container 
 function last_container_id {
   docker ps -q | tail -n 1
 }
 
-#
 # Watches over docker containers running without taking
 # the whole screen
-#
-CMD_WATCHDOCKER="watch \"docker ps -q | xargs docker inspect --format '{{.Id}} @{{.Config.Image}} @{{.Config.Cmd}} @{{range \\\$p, \\\$conf := .NetworkSettings.Ports}}{{\\\$p}}->{{(index \\\$conf 0).HostPort}}{{end}} @{{.NetworkSettings.IPAddress}}' | column -t -s='@' | cut -c 1-5,64-\""
-alias watchdocker='eval $CMD_WATCHDOCKER'
+function _docker_ps_compact {
+  if [[ $(docker ps -q) ]]; then
+    DELI='|'
+    delimeted_output=`docker ps -q | xargs docker inspect --format="{{.Id}}$DELI{{.Config.Image}}$DELI{{.Config.Cmd}}$DELI{{range \\\$p, \\\$conf := .NetworkSettings.Ports}}{{\\\$p}}->{{(index \\$conf 0).HostPort}}{{end}}$DELI{{.NetworkSettings.IPAddress}}"`
+    columnized_output=`echo "$delimeted_output" | sed "s/$DELI$DELI/$DELI  $DELI/g" | column -t -s=$DELI`
+    filtered_output=`echo "$columnized_output" | cut -c 1-6,65-`
+    echo "$filtered_output"
+  else
+    echo "No containers running."
+  fi
+}
+export -f _docker_ps_compact
+alias watchdocker='watch bash -c _docker_ps_compact'
