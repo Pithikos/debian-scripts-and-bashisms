@@ -1,6 +1,29 @@
-alias json='python -mjson.tool | pygmentize -l json'
-
+# Prettyprint JSON
 # Example: echo '<h1>test</h1>' | html2text
+alias json='python -mjson.tool | pygmentize -l json'
 function html2text {
   sed 's/\\r//g' | sed 's/\\n//g' | lynx --dump --width 80 -stdin
 }
+
+# Prettyprint man pages
+function _colorman() {
+  env \
+    LESS_TERMCAP_mb=$(printf "\e[1;35m") \
+    LESS_TERMCAP_md=$(printf "\e[1;34m") \
+    LESS_TERMCAP_me=$(printf "\e[0m") \
+    LESS_TERMCAP_se=$(printf "\e[0m") \
+    LESS_TERMCAP_so=$(printf "\e[7;40m") \
+    LESS_TERMCAP_ue=$(printf "\e[0m") \
+    LESS_TERMCAP_us=$(printf "\e[1;33m") \
+      "$@"
+}
+function man() { _colorman man "$@"; }
+function perldoc() { command perldoc -n less "$@" |man -l -; }
+
+
+# Prettyprint from common commands
+# Prerequisites: sudo apt-get install grc
+alias ping='grc 2> /dev/null && grc ping'
+alias netstat='grc 2> /dev/null && grc netstat'
+alias tail='grc 2> /dev/null && grc tail'
+alias head='grc 2> /dev/null && grc head'
