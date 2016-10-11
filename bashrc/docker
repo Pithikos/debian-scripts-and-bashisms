@@ -14,13 +14,24 @@ function last_container_id {
 
 # Watches over docker containers running without taking
 # the whole screen
+function _docker_ps_colorize {
+  esc=$(printf '\033')
+  table="$1"
+  table=`echo "$table" | sed "2,$ s/\([0-9]*\.[0-9]*\.[0-9]*\.[0-9]*\)/${esc}[92m\1${esc}[0m/g"` # IP
+  table=`echo "$table" | sed "2,$ s/\([0-9]\{3,6\}\)\([^\.\w]\)/${esc}[34m\1${esc}[0m\2/g"` # Port
+  table=`echo "$table" | sed "2,$ s/\(\s\)\(\w\{1,\}\)\(\s\)/\1${esc}[35m\2${esc}[0m\3/"` # 2nd col
+  table=`echo "$table" | sed "1s/.*/${esc}[1m&${esc}[0m/"` # Headers
+  echo "$table"
+}
+export -f _docker_ps_colorize
 function _docker_ps_compact {
   if [[ $(docker ps -q) ]]; then
     DELI='|'
-    delimeted_output=`docker ps -q | xargs docker inspect --format="{{.Id}}$DELI\e[1m{{.Config.Image}}\e[0m$DELI\e[2m{{.Config.Cmd}}\e[0m$DELI{{range \\\$p, \\\$conf := .NetworkSettings.Ports}}\e[34m{{\\\$p}}\e[0m->\e[34m{{(index \\$conf 0).HostPort}}\e[0m{{end}}$DELI\e[92m{{.NetworkSettings.IPAddress}}\e[0m"`
-    columnized_output=`echo "$delimeted_output" | sed "s/$DELI$DELI/$DELI  $DELI/g" | column -t -s=$DELI`
-    filtered_output=`echo "$columnized_output" | cut -c 1-6,65-`
-    echo -e "$filtered_output"
+    rows=`docker inspect --format="{{.Id}}$DELI{{.Config.Image}}$DELI{{.Config.Cmd}}$DELI{{range \\\$p, \\\$conf := .NetworkSettings.Ports}}{{\\\$p}}->{{(index \\$conf 0).HostPort}}{{end}}$DELI{{.NetworkSettings.IPAddress}}" $(docker ps -q) | cut -c 1-6,65- | sed "s/$DELI$DELI/$DELI  $DELI/g"`
+    headers="Container${DELI}Image${DELI}Command${DELI}Ports${DELI}IP"
+    table=`echo "${headers}"$'\n'"${rows}" | column -s="$DELI" -t`
+    table=`_docker_ps_colorize "$table"`
+    echo "$table"
   else
     echo "No containers running."
   fi
