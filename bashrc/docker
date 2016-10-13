@@ -18,7 +18,7 @@ function _docker_ps_colorize {
   esc=$(printf '\033')
   table="$1"
   table=`echo "$table" | sed "2,$ s/\([0-9]*\.[0-9]*\.[0-9]*\.[0-9]*\)/${esc}[92m\1${esc}[0m/g"` # IP
-  table=`echo "$table" | sed "2,$ s/\([0-9]\{3,6\}\)\([^\.\w]\)/${esc}[34m\1${esc}[0m\2/g"` # Port
+  table=`echo "$table" | sed -r "2,$ s/([/\\<>:, ]*)([0-9]{3,6})([/\\<>:, ]+)/\1${esc}[34m\2${esc}[0m\3/g"` # Port
   table=`echo "$table" | sed "2,$ s/\(\s\)\(\w\{1,\}\)\(\s\)/\1${esc}[35m\2${esc}[0m\3/"` # 2nd col
   table=`echo "$table" | sed "1s/.*/${esc}[1m&${esc}[0m/"` # Headers
   echo "$table"
