@@ -28,6 +28,8 @@ function _docker_ps_compact {
   if [[ $(docker ps -q) ]]; then
     DELI='|'
     rows=`docker inspect --format="{{.Id}}$DELI{{.Config.Image}}$DELI{{.Config.Cmd}}$DELI{{range \\\$p, \\\$conf := .NetworkSettings.Ports}}{{\\\$p}}->{{(index \\$conf 0).HostPort}}{{end}}$DELI{{.NetworkSettings.IPAddress}}" $(docker ps -q) | cut -c 1-6,65- | sed "s/$DELI$DELI/$DELI  $DELI/g"`
+    rows=`echo "$rows" | sed 's/\[.*&&[ ]*\(.*\)\]/[..\1]/g'` # keep last cmd if many
+    rows=`echo "$rows" | sed 's/\[\(.*\)\]/\1/g'`             # remove cmd brackets
     headers="Container${DELI}Image${DELI}Command${DELI}Ports${DELI}IP"
     table=`echo "${headers}"$'\n'"${rows}" | column -s="$DELI" -t`
     table=`_docker_ps_colorize "$table"`
