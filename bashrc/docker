@@ -9,7 +9,7 @@ function last_container {
 
 # Gives the ID of the last container 
 function last_container_id {
-  docker ps -q | tail -n 1
+  docker ps -q | head -n 1
 }
 
 # Watches over docker containers running without taking
