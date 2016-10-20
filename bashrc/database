@@ -1,0 +1,14 @@
+# Open the CLI to an Oracle database
+function _db_cli_oracle { # user, host, dbname, noproxy
+  if [ ! "$_DB_ORACLE_PASS" ]; then
+    read -s -p "Enter Password: " _DB_ORACLE_PASS
+    echo
+  fi
+  if [ $4 ]; then
+    export no_proxy=
+    export http_proxy=
+    echo "Disabled proxy for the database connection."
+  fi
+  echo "Connecting to $2/$3 as $1"
+  sqlplus "$1/$_DB_ORACLE_PASS@$2/$3"
+}
