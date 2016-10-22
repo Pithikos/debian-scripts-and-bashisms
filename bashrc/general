@@ -8,7 +8,7 @@ export HISTFILESIZE=
 # Sync history across different sessions
 shopt -s histappend
 
-# Stire multiline commands as single line
+# Store multiline commands as single line
 shopt -s cmdhist
 
 # Show timestamps
