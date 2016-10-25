@@ -1,0 +1,2 @@
+# Coloured prompt
+PS1='\[\e[91m\][live - \u@\h \w]\[\e[00m\]\$ '

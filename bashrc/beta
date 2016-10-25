@@ -1,0 +1,2 @@
+# Coloured prompt
+PS1='\[\e[93m\][beta - \u@\h \w]\[\e[00m\]\$ '
