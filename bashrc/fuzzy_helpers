@@ -1,3 +1,7 @@
 function fuzzyfind {
   find . -iname "*${1}*"
 }
+
+function fuzzygrep {
+  egrep -i -r "$1" .
+}

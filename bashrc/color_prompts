@@ -1,0 +1,5 @@
+# BETA Server colour prompt
+PS1='\[\e[93m\][beta - \u@\h \w]\[\e[00m\]\$ '
+
+# LIVE Server colour prompt
+PS1='\[\e[91m\][live - \u@\h \w]\[\e[00m\]\$ '
