@@ -8,3 +8,8 @@ sudo apt-get update && sudo apt-get install numix-gtk-theme
 
 # Icon sets
 sudo apt install faenza-icon-theme -y
+
+# Extensions plugin
+sudo add-apt-repository ppa:ne0sight/chrome-gnome-shell
+sudo apt-get update
+sudo apt-get install chrome-gnome-shell -y
