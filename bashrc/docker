@@ -12,6 +12,12 @@ function last_container_id {
   docker ps -q | head -n 1
 }
 
+# Remove all Docker images and containers
+function remove_all_containers {
+  docker rm -f $(docker ps -aq)
+  docker rmi -f $(docker images -aq)
+}
+
 # Watches over docker containers running without taking
 # the whole screen
 function _docker_ps_colorize {
