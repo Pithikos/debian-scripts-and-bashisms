@@ -1,0 +1,1 @@
+alias ports='sudo lsof -i -P -n'
