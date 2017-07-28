@@ -1,0 +1,1 @@
+alias gl='git log --graph --oneline --branches'
