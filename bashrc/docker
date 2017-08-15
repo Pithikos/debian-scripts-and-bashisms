@@ -1,3 +1,5 @@
+alias dps='docker ps'
+
 # Shell to the last container
 function last_container {
   if [[ $(last_container_id) ]]; then
