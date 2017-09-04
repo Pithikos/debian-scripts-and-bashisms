@@ -1,1 +1,2 @@
 alias gl='git log --graph --oneline --branches'
+alias gs='git status'
