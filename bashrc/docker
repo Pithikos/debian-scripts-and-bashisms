@@ -1,4 +1,9 @@
+# ---------------------------------- Aliases -----------------------------------
+
 alias dps='docker ps'
+
+
+# ---------------------------------- Shortcuts ---------------------------------
 
 # Shell to the last container
 function last_container {
@@ -9,7 +14,7 @@ function last_container {
   fi
 }
 
-# Gives the ID of the last container 
+# Gives the ID of the last container
 function last_container_id {
   docker ps -q | head -n 1
 }
@@ -31,6 +36,7 @@ function _docker_ps_colorize {
   table=`echo "$table" | sed "1s/.*/${esc}[1m&${esc}[0m/"` # Headers
   echo "$table"
 }
+
 export -f _docker_ps_colorize
 function _docker_ps_compact {
   if [[ $(docker ps -q) ]]; then
@@ -48,3 +54,69 @@ function _docker_ps_compact {
 }
 export -f _docker_ps_compact
 alias watchdocker='watch --color bash -c _docker_ps_compact'
+
+
+# ----------------------------- Docker auto-enter ------------------------------
+
+#
+# The below code will allow you to enter a docker container by simply typing
+# the ID of the container in the terminal.
+#
+
+
+# Check if a docker container is running
+function _docker_container_is_running {
+	running=$(docker inspect --format="{{.State.Running}}" $1 2>/dev/null)
+	if [[ $running != "true" ]]; then
+		false
+	else
+		true
+	fi
+}
+
+# Check if command_not_found_handle is defined
+function _is_defined_command_not_found_handle {
+	if type command_not_found_handle &> /dev/null; then
+		echo 'defined'
+		true
+	else
+		false
+	fi
+}
+was_defined_command_not_found_handle=$(_is_defined_command_not_found_handle)
+
+function _is_shell_bash {
+	if [ "$0" == "bash" ] || [ "$(basename $SHELL)" == "bash" ]; then
+		true
+	else
+		false
+	fi
+}
+
+# Store the previous definition of command_not_found_handle
+if [ $was_defined_command_not_found_handle ]; then
+	eval "_original_$(declare -f command_not_found_handle)"
+fi
+
+# Extend command_not_found_handle to enter Docker containers
+function command_not_found_handle {
+	if _docker_container_is_running $1; then
+		if [ $2 ]; then
+			docker exec -it "$@"
+		else
+			docker exec -it $1 bash
+		fi
+	else
+		if [ $was_defined_command_not_found_handle ]; then
+			_original_command_not_found_handle "$@"
+		else
+			if _is_shell_bash; then
+				# Show default error messages from bash and delegate error code
+				bash -c "$@"
+				return $?
+			else
+				echo "[*] command not found"
+			fi
+		fi
+	fi
+}
