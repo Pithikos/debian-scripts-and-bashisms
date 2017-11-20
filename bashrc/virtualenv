@@ -1,6 +1,19 @@
 # Original source: https://gist.github.com/Willyfrog/3226639
 
 
+_upfind_dir(){
+	_dir=`pwd`
+	while [[ $_dir != / ]] ; do
+		guess_path="$_dir"/"$1"
+		if [[ -d "$guess_path" ]]; then
+			echo "$guess_path"
+			true
+		fi
+		_dir=`dirname "$_dir"`
+	done
+}
+
+
 # The virtualenv will be activated automatically when you enter the directory.
 _virtualenv_auto_activate_deactivate() {
 	if [ -e ".venv" ]; then
