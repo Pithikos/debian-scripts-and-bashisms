@@ -30,4 +30,4 @@ _virtualenv_auto_activate_deactivate() {
      fi
 }
 
-export PROMPT_COMMAND=_virtualenv_auto_activate_deactivate
+export PROMPT_COMMAND="_virtualenv_auto_activate_deactivate; $PROMPT_COMMAND"
