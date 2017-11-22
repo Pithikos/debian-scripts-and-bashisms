@@ -1,5 +1,6 @@
 # Original source: https://gist.github.com/Willyfrog/3226639
 
+_LAST_VIRTUAL_ENV=''
 
 _upfind_dir(){
 	_dir=`pwd`
@@ -7,40 +8,42 @@ _upfind_dir(){
 		guess_path="$_dir"/"$1"
 		if [[ -d "$guess_path" ]]; then
 			echo "$guess_path"
-			true
+			return 0
 		fi
 		_dir=`dirname "$_dir"`
 	done
+	return 1
 }
 
 
 # The virtualenv will be activated automatically when you enter the directory.
 _virtualenv_auto_activate_deactivate() {
-	if [ -e ".venv" ]; then
-		env_directory=".venv"
-	elif [ -e ".env" ]; then
-		env_directory=".env"
-	else
-		env_directory=""
+
+
+	found_env=`_upfind_dir ".venv"`
+	if [ ! "$found_env" ]; then
+		found_env=`_upfind_dir ".env"`
 	fi
 
-	if [ "$env_directory" != "" ]; then
-          # Check to see if already activated to avoid redundant activating
-          if [ "$VIRTUAL_ENV" = "" ]; then
+	  # Activate
+          if [ "$found_env" != "$VIRTUAL_ENV" ]; then
               _VENV_NAME=$(basename `pwd`)
-              echo Activating virtualenv \"$_VENV_NAME\"...
+              echo Activating "$found_env" ..
               VIRTUAL_ENV_DISABLE_PROMPT=1
-              source $env_directory/bin/activate
-              _OLD_VIRTUAL_PS1="$PS1"
-              PS1="($_VENV_NAME)$PS1"
-              export PS1
-           fi
-     	else
-       		if [ "$VIRTUAL_ENV" != "" ]; then
+              source "$found_env"/bin/activate
+	      if [ "$?" ]; then
+	          VIRTUAL_ENV="$found_env"
+		  _OLD_VIRTUAL_PS1="$PS1"
+                  PS1="($_VENV_NAME)$PS1"
+                  export PS1
+	      fi
+     	   else
+		# Deactivate
+       		if [ "$VIRTUAL_ENV" ] && [ ! "$found_env" ]; then
          		echo Deactivating VirtualEnv
          		deactivate
        		fi
-     fi
+     	   fi
 }
 
 export PROMPT_COMMAND="_virtualenv_auto_activate_deactivate; $PROMPT_COMMAND"
