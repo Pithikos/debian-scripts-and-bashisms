@@ -15,11 +15,52 @@ _upfind_file(){
 }
 
 
-shell() {
-	managepy=`_upfind_file manage.py`
-	if [[ "$managepy" ]]; then
-		python "$managepy" "$_django_shell"
+_is_django_project(){
+	if _upfind_file manage.py > /dev/null; then
+		return 0
+	else
+		return 1
+	fi
+}
+
+
+shell(){
+	if [[ "$DJANGO_MANAGE" ]]; then
+		python "$DJANGO_MANAGE" "$_django_shell"
 	else
 		echo "No manage.py file found"
 	fi
 }
+
+
+root(){
+	if [[ "$DJANGO_MANAGE" ]]; then
+		cd "$(dirname "$DJANGO_MANAGE")"
+	else
+		echo "Not a django project"
+	fi
+}
+
+
+_handle_django_command(){
+	DJANGO_MANAGE=`_upfind_file manage.py`
+	return 0
+}
+
+
+_try_run_django_command(){
+	if [[ "$DJANGO_MANAGE" ]]; then
+		"$@"
+	else
+		echo "Not a django project."
+	fi
+}
+
+
+# Django shortcuts
+
+alias makemigrations='_try_run_django_command python "$DJANGO_MANAGE" makemigrations'
+alias migrate='_try_run_django_command python "$DJANGO_MANAGE" migrate'
+
+
+export PROMPT_COMMAND="_handle_django_command; $PROMPT_COMMAND"
