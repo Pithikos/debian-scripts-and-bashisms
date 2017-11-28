@@ -61,6 +61,7 @@ _try_run_django_command(){
 
 alias makemigrations='_try_run_django_command python "$DJANGO_MANAGE" makemigrations'
 alias migrate='_try_run_django_command python "$DJANGO_MANAGE" migrate'
-
+alias mig='migrate'
+alias mkmig='makemigrations'
 
 export PROMPT_COMMAND="_handle_django_command; $PROMPT_COMMAND"
