@@ -1,3 +1,14 @@
+#
+# This script will add the following:
+#   * Populate DJANGO_MANAGE_MODULE when in a Django project
+#   * Add aliases:
+#		  - shell
+#     - root
+#     - mkmig
+#     - mig
+#
+
+
 _django_shell='shell_plus'
 
 
@@ -15,18 +26,9 @@ _upfind_file(){
 }
 
 
-_is_django_project(){
-	if _upfind_file manage.py > /dev/null; then
-		return 0
-	else
-		return 1
-	fi
-}
-
-
 shell(){
-	if [[ "$DJANGO_MANAGE" ]]; then
-		python "$DJANGO_MANAGE" "$_django_shell"
+	if [[ "$DJANGO_MANAGE_MODULE" ]]; then
+		python "$DJANGO_MANAGE_MODULE" "$_django_shell"
 	else
 		echo "No manage.py file found"
 	fi
@@ -34,22 +36,16 @@ shell(){
 
 
 root(){
-	if [[ "$DJANGO_MANAGE" ]]; then
-		cd "$(dirname "$DJANGO_MANAGE")"
+	if [[ "$DJANGO_MANAGE_MODULE" ]]; then
+		cd "$(dirname "$DJANGO_MANAGE_MODULE")"
 	else
 		echo "Not a django project"
 	fi
 }
 
 
-_handle_django_command(){
-	DJANGO_MANAGE=`_upfind_file manage.py`
-	return 0
-}
-
-
 _try_run_django_command(){
-	if [[ "$DJANGO_MANAGE" ]]; then
+	if [[ "$DJANGO_MANAGE_MODULE" ]]; then
 		"$@"
 	else
 		echo "Not a django project."
@@ -59,9 +55,7 @@ _try_run_django_command(){
 
 # Django shortcuts
 
-alias makemigrations='_try_run_django_command python "$DJANGO_MANAGE" makemigrations'
-alias migrate='_try_run_django_command python "$DJANGO_MANAGE" migrate'
+alias makemigrations='_try_run_django_command python "$DJANGO_MANAGE_MODULE" makemigrations'
+alias migrate='_try_run_django_command python "$DJANGO_MANAGE_MODULE" migrate'
 alias mig='migrate'
 alias mkmig='makemigrations'
-
-export PROMPT_COMMAND="_handle_django_command; $PROMPT_COMMAND"
