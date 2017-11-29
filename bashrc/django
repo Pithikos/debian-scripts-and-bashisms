@@ -44,7 +44,13 @@ root(){
 }
 
 
+_populate_django_vars(){
+	DJANGO_MANAGE_MODULE=`_upfind_file manage.py`
+}
+
+
 _try_run_django_command(){
+	_populate_django_vars
 	if [[ "$DJANGO_MANAGE_MODULE" ]]; then
 		"$@"
 	else
@@ -54,8 +60,10 @@ _try_run_django_command(){
 
 
 # Django shortcuts
-
 alias makemigrations='_try_run_django_command python "$DJANGO_MANAGE_MODULE" makemigrations'
 alias migrate='_try_run_django_command python "$DJANGO_MANAGE_MODULE" migrate'
 alias mig='migrate'
 alias mkmig='makemigrations'
+
+
+export PROMPT_COMMAND="_populate_django_vars; $PROMPT_COMMAND"
