@@ -1,0 +1,21 @@
+# Remove any ARW that lack corresponding JPGs
+function rm_orphan_arw () {
+  for filename in `ls *.ARW`; do
+    barename=`basename -s '.ARW' "$filename"`
+    jpg_file="$barename.JPG"
+
+    # Test against corresponding .JPG
+    if [ ! -f "$jpg_file" ]; then
+      num_files=`ls "$barename".* | wc -l`
+
+      # Delete automatically ONLY if it's the only file
+      if [[ $num_files == '1' ]]; then
+        echo "$filenameelete $filename? Files found: $num_files"
+        read
+        rm "$filename"
+      else
+        echo "Will NOT delete $filename - found multiple files for $barename.*"
+      fi
+    fi
+  done
+}
