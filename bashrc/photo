@@ -10,7 +10,7 @@ function rm_orphan_arw () {
 
       # Delete automatically ONLY if it's the only file
       if [[ $num_files == '1' ]]; then
-        echo "$filenameelete $filename? Files found: $num_files"
+        echo "Delete $filename? Files found: $num_files"
         read
         rm "$filename"
       else
