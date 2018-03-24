@@ -9,7 +9,7 @@ function file_barename () {
 
 
 # Remove any ARW that lack corresponding JPGs
-function rm_orphan_arw () {
+function photo_rm_orphan_arw () {
   for filename in `ls *.ARW`; do
     barename=`basename -s '.ARW' "$filename"`
     jpg_file="$barename.JPG"
