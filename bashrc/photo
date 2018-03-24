@@ -1,3 +1,13 @@
+function file_extension () {
+	echo "$1" | cut -f 2 -d.
+}
+
+
+function file_barename () {
+	echo "$1" | cut -f 1 -d.
+}
+
+
 # Remove any ARW that lack corresponding JPGs
 function rm_orphan_arw () {
   for filename in `ls *.ARW`; do
@@ -18,4 +28,28 @@ function rm_orphan_arw () {
       fi
     fi
   done
+}
+
+# Make a resized copy of a photo photo (requires imagemagick)
+function photo_copy () { # image size
+	if ! mogrify -version &> /dev/null; then
+		echo "You need to install imagemagick";
+		return 1
+	fi
+	if [ ! $1 ]; then
+		echo "You need to give the filename of the photo"
+		return 1
+	fi
+        if [ ! $2 ]; then
+                echo "You need to give the photo size of one side"
+                return 1
+        fi
+
+	# Make a copy first
+	original="$PWD/$1"
+	target="$PWD/$(file_barename $1)_resized.$(file_extension $1)"
+	cp "$original" "$target"
+	
+	# Resize on largest side
+	convert "$target" -resize "$2>" "$target"
 }
