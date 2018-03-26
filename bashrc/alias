@@ -1,5 +1,6 @@
 # Changing directory
 alias ~~='cd ~/workspace'
+alias work='cd $(ls -ldt ~/workspace/* | head -n 1 | rev | cut -f1 -d" " | rev)'
 
 # Listing files
 alias ll='ls -alF'
