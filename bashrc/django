@@ -13,7 +13,5 @@ shell(){
 # ---------------------------------- Aliases -----------------------------------
 
 
-alias makemigrations='_try_run_django_command makemigrations'
-alias migrate='_try_run_django_command migrate'
 alias mig='migrate'
 alias mkmig='makemigrations'
