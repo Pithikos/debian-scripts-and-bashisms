@@ -1,36 +1,8 @@
-#
-# This script will add the following:
-#   * Populate DJANGO_MANAGE_MODULE when in a Django project
-#   * Add aliases:
-#		  - shell
-#     - root
-#     - mkmig
-#     - mig
-#
-
-
-_django_shell='shell_plus'
-
-
-_upfind_file(){
-	_dir=`pwd`
-	while [[ "$_dir" != "/" ]] ; do
-		guess_path="$_dir"/"$1"
-		if [[ -f "$guess_path" ]]; then
-			echo "$guess_path"
-			return 0
-		fi
-		_dir=`dirname "$_dir"`
-	done
-	return 1
-}
-
-
 shell(){
+	DJANGO_MANAGE_MODULE=`_upfind_file manage.py`
 	if [[ "$DJANGO_MANAGE_MODULE" ]]; then
-		python "$DJANGO_MANAGE_MODULE" "$_django_shell"
+		python "$DJANGO_MANAGE_MODULE" "shell"
 	else
-		echo "Not a django project"
 		if ipython --version > /dev/null; then
 			ipython
 		fi
@@ -38,70 +10,10 @@ shell(){
 }
 
 
-
-root(){
-	if [[ "$DJANGO_MANAGE_MODULE" ]]; then
-		cd "$(dirname "$DJANGO_MANAGE_MODULE")"
-	else
-		echo "Not a django project"
-	fi
-}
-
-
-_populate_django_vars(){
-	DJANGO_MANAGE_MODULE=`_upfind_file manage.py`
-}
-
-
-_try_run_django_command(){
-	_populate_django_vars
-	if [[ "$DJANGO_MANAGE_MODULE" ]]; then
-		echo "Detected django project."
-		python "$DJANGO_MANAGE_MODULE" "$@"
-	else
-		echo "Not a django project."
-	fi
-}
-
-
-export PROMPT_COMMAND="_populate_django_vars; $PROMPT_COMMAND"
-
-
 # ---------------------------------- Aliases -----------------------------------
 
 
-# Django shortcuts
 alias makemigrations='_try_run_django_command makemigrations'
 alias migrate='_try_run_django_command migrate'
 alias mig='migrate'
 alias mkmig='makemigrations'
-
-
-# ------------------------- Automatic Django context ---------------------------
-
-
-# Store the previous definition of command_not_found_handle
-if [ $was_defined_command_not_found_handle ]; then
-	eval "_original_$(declare -f command_not_found_handle)"
-fi
-
-# Extend command_not_found_handle to try running under Django context
-function command_not_found_handle {
-
-	_populate_django_vars
-	if [ "$DJANGO_MANAGE_MODULE" ]; then
-		_try_run_django_command "$@"
-	else
-		if [ $was_defined_command_not_found_handle ]; then
-			_original_command_not_found_handle "$@"
-		else
-			if _is_shell_bash; then
-				# Show default error messages from bash and delegate error code
-				bash -c "$@"
-				return $?
-			else
-				echo "[*] command not found"
-			fi
-		fi
-	fi
-}
