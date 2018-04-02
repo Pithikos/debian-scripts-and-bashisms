@@ -1,7 +1,7 @@
 # ---------------------------------- Aliases -----------------------------------
 
 alias dps='docker ps'
-
+alias docker-clean='docker rmi $(docker images -q)'
 
 # ---------------------------------- Shortcuts ---------------------------------
 
@@ -25,98 +25,3 @@ function remove_all_containers {
   docker rmi -f $(docker images -aq)
 }
 
-# Watches over docker containers running without taking
-# the whole screen
-function _docker_ps_colorize {
-  esc=$(printf '\033')
-  table="$1"
-  table=`echo "$table" | sed "2,$ s/\([0-9]*\.[0-9]*\.[0-9]*\.[0-9]*\)/${esc}[92m\1${esc}[0m/g"` # IP
-  table=`echo "$table" | sed -r "2,$ s/([/\\<>:, ]*)([0-9]{3,6})([/\\<>:, ]+)/\1${esc}[34m\2${esc}[0m\3/g"` # Port
-  table=`echo "$table" | sed "2,$ s/\(\s\)\(\w\{1,\}\)\(\s\)/\1${esc}[35m\2${esc}[0m\3/"` # 2nd col
-  table=`echo "$table" | sed "1s/.*/${esc}[1m&${esc}[0m/"` # Headers
-  echo "$table"
-}
-
-export -f _docker_ps_colorize
-function _docker_ps_compact {
-  if [[ $(docker ps -q) ]]; then
-    DELI='|'
-    rows=`docker inspect --format="{{.Id}}$DELI{{.Config.Image}}$DELI{{.Config.Cmd}}$DELI{{range \\\$p, \\\$conf := .NetworkSettings.Ports}}{{\\\$p}}->{{(index \\$conf 0).HostPort}}{{end}}$DELI{{.NetworkSettings.IPAddress}}" $(docker ps -q) | cut -c 1-6,65- | sed "s/$DELI$DELI/$DELI  $DELI/g"`
-    rows=`echo "$rows" | sed 's/\[.*&&[ ]*\(.*\)\]/[..\1]/g'` # keep last cmd if many
-    rows=`echo "$rows" | sed 's/\[\(.*\)\]/\1/g'`             # remove cmd brackets
-    headers="Container${DELI}Image${DELI}Command${DELI}Ports${DELI}IP"
-    table=`echo "${headers}"$'\n'"${rows}" | column -s="$DELI" -t`
-    table=`_docker_ps_colorize "$table"`
-    echo "$table"
-  else
-    echo "No containers running."
-  fi
-}
-export -f _docker_ps_compact
-alias watchdocker='watch --color bash -c _docker_ps_compact'
-
-
-# ----------------------------- Docker auto-enter ------------------------------
-
-#
-# The below code will allow you to enter a docker container by simply typing
-# the ID of the container in the terminal.
-#
-
-
-# Check if a docker container is running
-function _docker_container_is_running {
-	running=$(docker inspect --format="{{.State.Running}}" $1 2>/dev/null)
-	if [[ $running != "true" ]]; then
-		false
-	else
-		true
-	fi
-}
-
-# Check if command_not_found_handle is defined
-function _is_defined_command_not_found_handle {
-	if type command_not_found_handle &> /dev/null; then
-		echo 'defined'
-		true
-	else
-		false
-	fi
-}
-was_defined_command_not_found_handle=$(_is_defined_command_not_found_handle)
-
-function _is_shell_bash {
-	if [ "$0" == "bash" ] || [ "$(basename $SHELL)" == "bash" ]; then
-		true
-	else
-		false
-	fi
-}
-
-# Store the previous definition of command_not_found_handle
-if [ $was_defined_command_not_found_handle ]; then
-	eval "_original_$(declare -f command_not_found_handle)"
-fi
-
-# Extend command_not_found_handle to enter Docker containers
-function command_not_found_handle {
-	if _docker_container_is_running $1; then
-		if [ $2 ]; then
-			docker exec -it "$@"
-		else
-			docker exec -it $1 bash
-		fi
-	else
-		if [ $was_defined_command_not_found_handle ]; then
-			_original_command_not_found_handle "$@"
-		else
-			if _is_shell_bash; then
-				# Show default error messages from bash and delegate error code
-				bash -c "$@"
-				return $?
-			else
-				echo "[*] command not found"
-			fi
-		fi
-	fi
-}
