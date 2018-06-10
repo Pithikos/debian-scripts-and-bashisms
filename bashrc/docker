@@ -20,7 +20,7 @@ function last_container_id {
 }
 
 # Remove all Docker images and containers
-function remove_all_containers {
+function docker_cleanup {
   docker rm -f $(docker ps -aq)
   docker rmi -f $(docker images -aq)
 }
