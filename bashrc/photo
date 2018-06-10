@@ -30,6 +30,7 @@ function photo_rm_orphan_arw () {
   done
 }
 
+
 # Make a resized copy of a photo photo (requires imagemagick)
 function photo_copy () { # image size
 	if ! mogrify -version &> /dev/null; then
@@ -37,19 +38,22 @@ function photo_copy () { # image size
 		return 1
 	fi
 	if [ ! $1 ]; then
-		echo "You need to give the filename of the photo"
+		echo "You need to give the photo size of one side"
 		return 1
 	fi
-        if [ ! $2 ]; then
-                echo "You need to give the photo size of one side"
-                return 1
-        fi
+	if [ ! $2 ]; then
+		echo "You need to give at least one file to resize"
+		return 1
+	fi
 
-	# Make a copy first
-	original="$PWD/$1"
-	target="$PWD/$(file_barename $1)_resized.$(file_extension $1)"
-	cp "$original" "$target"
-	
-	# Resize on largest side
-	convert "$target" -resize "$2>" "$target"
+	for f in "${@:2}"; do
+		# Make a copy first
+		original="$PWD/$f"
+		target="$PWD/$(file_barename $f)_resized.$(file_extension $f)"
+		cp "$original" "$target"
+
+		# Resize on largest side
+		convert "$target" -resize "$1>" "$target"
+	done
+
 }
