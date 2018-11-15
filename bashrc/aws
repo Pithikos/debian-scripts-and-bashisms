@@ -1,0 +1,7 @@
+
+# Gives the IP based on the name of an elasticbeanstalk instance
+#
+# NOTE: This assumes that only one instance is to be found
+function aws_eb_ip() {
+	aws ec2 describe-instances --filter "Name=tag:Name,Values=$1" --query 'Reservations[*].Instances[*].PublicIpAddress' --output=text
+}
