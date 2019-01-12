@@ -1,7 +1,7 @@
 shell(){
 	DJANGO_MANAGE_MODULE=`_upfind_file manage.py`
 	if [[ "$DJANGO_MANAGE_MODULE" ]]; then
-		python "$DJANGO_MANAGE_MODULE" "shell"
+		python "$DJANGO_MANAGE_MODULE" "shell_plus"
 	else
 		if ipython --version > /dev/null; then
 			ipython
