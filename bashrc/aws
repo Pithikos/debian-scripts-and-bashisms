@@ -5,3 +5,9 @@
 function aws_eb_ip() {
 	aws ec2 describe-instances --filter "Name=tag:Name,Values=$1" --query 'Reservations[*].Instances[*].PublicIpAddress' --output=text
 }
+
+
+alias dev='ssh -i /home/manos/.ssh/manos.pem ec2-user@$(aws_eb_ip development) -t "cd /var/app/current; bash"'
+alias stag='ssh -i /home/manos/.ssh/manos.pem ec2-user@$(aws_eb_ip staging) -t "cd /var/app/current; bash"'
+alias prod='ssh -i /home/manos/.ssh/manos.pem ec2-user@$(aws_eb_ip production) -t "cd /var/app/current; bash"'
+
