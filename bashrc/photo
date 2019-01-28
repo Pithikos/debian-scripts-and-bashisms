@@ -8,6 +8,16 @@ function file_barename () {
 }
 
 
+function is_integer () {
+	re='^[0-9]+$'
+	if [[ $1 =~ $re ]]; then
+		return 0
+	else
+		return 1
+	fi
+}
+
+
 # Remove any ARW that lack corresponding JPGs
 function photo_rm_orphan_arw () {
   for filename in `ls *.ARW`; do
@@ -37,10 +47,12 @@ function photo_copy () { # image size
 		echo "You need to install imagemagick";
 		return 1
 	fi
-	if [ ! $1 ]; then
-		echo "You need to give the photo size of one side"
+	
+	if [ ! $1 ] || ! is_integer $1; then
+		echo "First argument should be the photo size in pixels"
 		return 1
 	fi
+	
 	if [ ! $2 ]; then
 		echo "You need to give at least one file to resize"
 		return 1
@@ -56,4 +68,25 @@ function photo_copy () { # image size
 		convert "$target" -resize "$1>" "$target"
 	done
 
+}
+
+
+# Create a folder resized/ 
+function photo_resize () {
+	outdir='resized'
+	if [ -d $outdir ]; then
+		echo "ERROR: directory '$outdir' already exists"
+		return 1
+	fi
+
+	photo_copy "$@" || return 1
+	
+	# Move files one by one
+	mkdir "$outdir"
+	for f in "${@:2}"; do
+		resized_file="$(file_barename $f)_resized.$(file_extension $f)"
+		mv "$resized_file" "${outdir}/${f}"
+	done
+
+	echo "Resized all images to '$outdir'"
 }
