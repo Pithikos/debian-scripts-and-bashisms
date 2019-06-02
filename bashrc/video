@@ -1,0 +1,55 @@
+function file_barename () {
+	echo "$1" | cut -f 1 -d.
+}
+
+
+# Convert AVCHD from Sony into a more post-production friendly format
+function video_convert_postfriendly () { # image size
+	if ! ffmpeg -version &> /dev/null; then
+		echo "You need to install ffmpeg";
+		return 1
+	fi
+	
+	if [ ! $1 ]; then
+		echo "You need to give at least one input video file"
+		return 1
+	fi
+
+	mkdir ./converted
+	for f in "${@:1}"; do
+		barename=$(file_barename "$f")
+		ffmpeg -i "$f" -c:v dnxhd -vf "scale=1280:720,fps=30000/1001,format=yuv422p" -b:v 110M -c:a pcm_s16le "./converted/${barename}.mov"
+	done
+
+}
+
+
+function video_generate_deshake_files () {
+	if [ ! $1 ]; then
+                echo "You need to give at least one input video file"
+                return 1
+        fi
+
+	
+	for f in "${@:1}"; do
+		barename=$(file_barename "$f")
+		ffmpeg -i "$f" -vf "vidstabdetect=shakiness=10:accuracy=15:result=${barename}.trf" -f null -
+        done
+}
+
+
+function video_deshake () {
+        if [ ! $1 ]; then
+                echo "You need to give at least one input video file"
+                return 1
+        fi
+
+	# First generate deshake files
+	video_generate_deshake_files "${@:1}"
+
+	# Then deshake to post-edit format
+	for f in "${@:1}"; do
+		barename=$(file_barename "$f")
+		ffmpeg -i "$f" -vf "vidstabtransform=smoothing=30:input=${barename}.trf,scale=1920:1080,fps=50,format=yuv422p10" -c:v dnxhd -b:v 365M -c:a copy "${barename}_deshaked.mov"
+	done
+}
