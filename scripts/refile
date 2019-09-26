@@ -1,0 +1,54 @@
+#! /usr/bin/python3
+import argparse
+import os
+import re
+from glob import glob
+from os.path import join, basename
+
+parser = argparse.ArgumentParser(description='Remove files with regular expression.')
+parser.add_argument('regex', type=str, nargs='+', help='one or more regular expressions to match')
+
+parser.add_argument('--keep', dest='keep', default=None, action='store_true', help='keep files matching regular expressions')
+parser.add_argument('--remove', dest='remove', default=None, action='store_true', help='remove files matching regular expressions')
+
+parser.add_argument('--dry', '-d', dest='dry', action='store_true', default=False, help='show what would actually happen')
+parser.add_argument('--invert-match', '-v', dest='invert_match', action='store_true', default=False)
+parser.add_argument('--recursive', '-r', dest='recursive', action='store_true', default=False)
+parser.add_argument('--ignore-case', '-i', dest='igore_case', action='store_true', default=False, help='case insensitive')
+
+args = parser.parse_args()
+
+if not (args.remove or args.keep):
+    print('No --keep or --remove passed. Will simply print the matching files.')
+
+# Get matching files
+all_filepaths = glob(join(os.getcwd(), '*'), recursive=True)
+matched = []
+for filepath in all_filepaths:
+    filename = basename(filepath)
+    for regex in args.regex:
+        if args.igore_case:
+            matches = re.findall(regex, filename, flags=re.IGNORECASE)
+        else:
+            matches = re.findall(regex, filename)
+        if matches:
+            matched.append(filepath)
+            break
+if args.invert_match:
+    matched = set(all_filepaths) - set(matched)
+
+# Perform action
+if not args.keep and not args.remove:
+    for f in matched:
+        print(f)
+    exit(0)
+
+for_deletion = matched
+if args.keep:
+    for_deletion = set(all_filepaths) - set(matched)
+for f in for_deletion:
+    if args.dry:
+        print(f"Will delete '{f}'")
+    else:
+        os.remove(f)
+        print(f"Deleted '{f}'")
