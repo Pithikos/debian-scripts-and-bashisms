@@ -47,12 +47,12 @@ function photo_copy () { # image size
 		echo "You need to install imagemagick";
 		return 1
 	fi
-	
+
 	if [ ! $1 ] || ! is_integer $1; then
 		echo "First argument should be the photo size in pixels"
 		return 1
 	fi
-	
+
 	if [ ! $2 ]; then
 		echo "You need to give at least one file to resize"
 		return 1
@@ -71,16 +71,20 @@ function photo_copy () { # image size
 }
 
 
-# Create a folder resized/ 
-function photo_resize () {
-	outdir='resized'
-	if [ -d $outdir ]; then
-		echo "ERROR: directory '$outdir' already exists"
+function ensure_dir_not_exists () {
+	if [ -d "$1" ]; then
+		echo "ERROR: directory '$1' already exists"
 		return 1
 	fi
+}
 
+
+# Create a folder resized/
+function photo_resize () {
+	outdir='resized'
+	ensure_dir_not_exists "$outdir" || return 1
 	photo_copy "$@" || return 1
-	
+
 	# Move files one by one
 	mkdir "$outdir"
 	for f in "${@:2}"; do
@@ -89,4 +93,22 @@ function photo_resize () {
 	done
 
 	echo "Resized all images to '$outdir'"
+}
+
+
+# Add logo
+function photo_logo () {
+	if [ ! $2 ]; then
+		echo "Usage: photo_logo <logo> <image1> .."
+		return 1
+	fi
+
+	outdir='with_logo'
+	if [ ! -d "$outdir" ]; then
+		mkdir "$outdir"
+	fi
+
+	for f in "${@:2}"; do
+		composite -gravity southeast -geometry +20+20 "$1" "$f" "${outdir}/${f}"
+	done
 }
