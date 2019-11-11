@@ -1,6 +1,10 @@
 function pyclean () {
-  # Delete all __pycache__ directories
+  echo "Removing __pycache__ dirs"
   find . -type d -name '__pycache__' -exec rm -fr {} \;
-  # Delete all .pytest_cache directories
+
+  echo "Removing .pytest_cache dirs"
   find . -type d -name '.pytest_cache' -exec rm -fr {} \;
+
+  echo "Delete SQLite3 databases"
+  find . -type f -name 'db.*' -exec rm {} \;
 }
