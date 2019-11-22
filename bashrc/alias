@@ -1,9 +1,8 @@
 # Changing directory
-alias ~~='cd ~/workspace'
 alias lastfile="ls -ldt ~/workspace/* ~/workspace/*/*  ~/workspace/*/*/* | head -n 1 | awk '{print \$8}'"
 alias lastproj="lastfile | cut -d '/' -f -5"
-alias work='~~'
-alias wa="work && atom ."
+alias ~~="cd `lastproj`"
+alias wa="~~ && atom ."
 
 # Listing files
 alias ll='ls -alF'
