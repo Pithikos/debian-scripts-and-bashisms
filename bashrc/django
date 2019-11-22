@@ -10,8 +10,15 @@ shell(){
 }
 
 
+deletemigrations(){
+	find . -not -path '*/\.*' -wholename '*/migrations/[0-9]?*.py' -type f -exec rm "{}" \;
+}
+
+
 # ---------------------------------- Aliases -----------------------------------
 
 
 alias mig='migrate'
 alias mkmig='makemigrations'
+alias rmmig='deletemigrations'
+
