@@ -21,4 +21,4 @@ deletemigrations(){
 alias mig='migrate'
 alias mkmig='makemigrations'
 alias rmmig='deletemigrations'
-
+alias remig='rmmig && mkmig && mig'
