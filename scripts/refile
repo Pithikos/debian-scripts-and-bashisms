@@ -60,11 +60,9 @@ def get_matching_files(regexes, recursive):
     return matched
 
 
-# Simply print matches
-def show_matches(matched_files):
-    for f in matched_files:
+def show_files(files):
+    for f in files:
         print(f"✔ {relpath(f)}")
-    exit(0)
 
 
 def move_files(files, dest, dry=True, create_dirs=False):
@@ -90,16 +88,16 @@ def delete_files(files, dry=True):
 
 
 if __name__ == '__main__':
-    matched = get_matching_files(args.regex, recursive=args.recursive)
+    matched_files = get_matching_files(args.regex, recursive=args.recursive)
     if args.move:
-        move_files(matched, args.move[0], dry=args.dry, create_dirs=args.create_dirs)
+        move_files(matched_files, args.move[0], dry=args.dry, create_dirs=args.create_dirs)
         exit(0)
     elif args.keep or args.remove:
         if args.keep:
-            matched = set(all_filepaths) - set(matched)
-        delete_files(matched, dry=args.dry)
+            matched_files = set(all_filepaths) - set(matched_files)
+        delete_files(matched_files, dry=args.dry)
     else:
-        if not matched:
+        if not matched_files:
             sys.stderr.write('No matches\n')
         else:
-            show_matches(matched)
+            show_files(matched_files)
