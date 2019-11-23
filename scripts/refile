@@ -2,8 +2,9 @@
 import argparse
 import os
 import re
+import sys
 from glob import glob
-from os.path import join, basename, relpath
+from os.path import join, basename, relpath, isfile
 
 parser = argparse.ArgumentParser(description='Remove files with regular expression.')
 parser.add_argument('regex', type=str, nargs='+', help='one or more regular expressions to match')
@@ -12,29 +13,41 @@ parser.add_argument('--keep', dest='keep', default=None, action='store_true', he
 parser.add_argument('--remove', dest='remove', default=None, action='store_true', help='remove files matching regular expressions')
 parser.add_argument('--move', dest='move', nargs=1, help='remove files matching regular expressions')
 
-parser.add_argument('--dry', '-d', dest='dry', action='store_true', default=False, help='show what would actually happen')
+parser.add_argument('--dry', dest='dry', action='store_true', default=False, help='show what would actually happen')
 parser.add_argument('--invert-match', '-v', dest='invert_match', action='store_true', default=False)
 parser.add_argument('--recursive', '-r', dest='recursive', action='store_true', default=False)
 parser.add_argument('--ignore-case', '-i', dest='igore_case', action='store_true', default=False, help='case insensitive')
 
+parser.add_argument('-f', dest='files_only', action='store_true', default=False, help='match only files')
+parser.add_argument('-d', dest='dirs_only', action='store_true', default=False, help='match only directories')
+parser.add_argument('-p', dest='create_dirs', action='store_true', default=False, help='create missing directories')
+
 args = parser.parse_args()
 
-if not (args.remove or args.keep or args.move):
-    print('No --keep, --remove or --move passed. Will simply print the matching files.')
+
+if args.create_dirs and not args.move:
+    print('Parameter -p can only be used with --move')
+    exit(1)
 
 
-def all_files():
+def all_files(recursive=False):
     """ Get all offspring files under current directory """
-    return glob(join(os.getcwd(), '*'), recursive=True)
+    all_entities = glob(join(os.getcwd(), '*'), recursive=recursive)
+    if not args.files_only and not args.dirs_only:
+        return all_entities
+    if args.files_only:
+        return [e for e in all_entities if isfile(e)]
+    if args.dirs_only:
+        return [e for e in all_entities if not isfile(e)]
 
 
-def get_matching_files():
+def get_matching_files(regexes, recursive):
     """ Get all files matching the regex """
-    all_filepaths = all_files()
+    all_filepaths = all_files(recursive)
     matched = []
     for filepath in all_filepaths:
         filename = basename(filepath)
-        for regex in args.regex:
+        for regex in regexes:
             if args.igore_case:
                 matches = re.findall(regex, filename, flags=re.IGNORECASE)
             else:
@@ -54,7 +67,9 @@ def show_matches(matched_files):
     exit(0)
 
 
-def move_files(files, dest, dry=True):
+def move_files(files, dest, dry=True, create_dirs=False):
+    if create_dirs:
+        os.makedirs(dest)
     for f in files:
         target = join(dest, basename(f))
         pres = f"{relpath(f)} ➜ {relpath(target)}"
@@ -75,13 +90,16 @@ def delete_files(files, dry=True):
 
 
 if __name__ == '__main__':
-    matched = get_matching_files()
+    matched = get_matching_files(args.regex, recursive=args.recursive)
     if args.move:
-        move_files(matched, args.move[0], dry=args.dry)
+        move_files(matched, args.move[0], dry=args.dry, create_dirs=args.create_dirs)
         exit(0)
     elif args.keep or args.remove:
         if args.keep:
             matched = set(all_filepaths) - set(matched)
         delete_files(matched, dry=args.dry)
     else:
-        show_matches(matched)
+        if not matched:
+            sys.stderr.write('No matches\n')
+        else:
+            show_matches(matched)
