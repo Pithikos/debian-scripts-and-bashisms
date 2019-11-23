@@ -61,8 +61,17 @@ def get_matching_files(regexes, recursive):
 
 
 def show_files(files):
+    _dirs = []
+    _files = []
     for f in files:
-        print(f"✔ {relpath(f)}")
+        if isfile(f):
+            _files.append(f)
+        else:
+            _dirs.append(f)
+    for d in _dirs:
+        print(f"🗀  {relpath(f)}")
+    for f in _files:
+        print(f"✔  {relpath(f)}")
 
 
 def move_files(files, dest, dry=True, create_dirs=False):
