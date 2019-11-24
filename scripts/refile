@@ -69,7 +69,7 @@ def show_files(files):
         else:
             _dirs.append(f)
     for d in _dirs:
-        print(f"🗀  {relpath(f)}")
+        print(f"🗀  {relpath(d)}")
     for f in _files:
         print(f"✔  {relpath(f)}")
 
