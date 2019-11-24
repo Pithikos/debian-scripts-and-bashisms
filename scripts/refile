@@ -5,6 +5,7 @@ import re
 import sys
 from glob import glob
 from os.path import join, basename, relpath, isfile
+from refile import *
 
 parser = argparse.ArgumentParser(description='Remove files with regular expression.')
 parser.add_argument('regex', type=str, nargs='+', help='one or more regular expressions to match')
@@ -16,7 +17,8 @@ parser.add_argument('--move', dest='move', nargs=1, help='remove files matching 
 parser.add_argument('--dry', dest='dry', action='store_true', default=False, help='show what would actually happen')
 parser.add_argument('--invert-match', '-v', dest='invert_match', action='store_true', default=False)
 parser.add_argument('--recursive', '-r', dest='recursive', action='store_true', default=False)
-parser.add_argument('--ignore-case', '-i', dest='igore_case', action='store_true', default=False, help='case insensitive')
+parser.add_argument('--ignore-case', '-i', dest='ignore_case', action='store_true', default=False, help='case insensitive')
+parser.add_argument('--automatic', dest='automatic', nargs=1, help='automatic refiling')
 
 parser.add_argument('-f', dest='files_only', action='store_true', default=False, help='match only files')
 parser.add_argument('-d', dest='dirs_only', action='store_true', default=False, help='match only directories')
@@ -24,80 +26,28 @@ parser.add_argument('-p', dest='create_dirs', action='store_true', default=False
 
 args = parser.parse_args()
 
+VALID_AUTOMATIC = (
+    'group-by-name',
+)
 
+
+if args.automatic and args.automatic[0] not in VALID_AUTOMATIC:
+    print(f'You need to pass one refiling strategy with --automatic. Valid stategies are {VALID_AUTOMATIC}')
+    exit(1)
 if args.create_dirs and not args.move:
     print('Parameter -p can only be used with --move')
     exit(1)
 
 
-def all_files(recursive=False):
-    """ Get all offspring files under current directory """
-    all_entities = glob(join(os.getcwd(), '*'), recursive=recursive)
-    if not args.files_only and not args.dirs_only:
-        return all_entities
-    if args.files_only:
-        return [e for e in all_entities if isfile(e)]
-    if args.dirs_only:
-        return [e for e in all_entities if not isfile(e)]
-
-
-def get_matching_files(regexes, recursive):
-    """ Get all files matching the regex """
-    all_filepaths = all_files(recursive)
-    matched = []
-    for filepath in all_filepaths:
-        filename = basename(filepath)
-        for regex in regexes:
-            if args.igore_case:
-                matches = re.findall(regex, filename, flags=re.IGNORECASE)
-            else:
-                matches = re.findall(regex, filename)
-            if matches:
-                matched.append(filepath)
-                break
-    if args.invert_match:
-        matched = set(all_filepaths) - set(matched)
-    return matched
-
-
-def show_files(files):
-    _dirs = []
-    _files = []
-    for f in files:
-        if isfile(f):
-            _files.append(f)
-        else:
-            _dirs.append(f)
-    for d in _dirs:
-        print(f"🗀  {relpath(d)}")
-    for f in _files:
-        print(f"✔  {relpath(f)}")
-
-
-def move_files(files, dest, dry=True, create_dirs=False):
-    if create_dirs:
-        os.makedirs(dest)
-    for f in files:
-        target = join(dest, basename(f))
-        pres = f"{relpath(f)} ➜ {relpath(target)}"
-        if dry:
-            print(pres)
-        else:
-            os.replace(f, target)
-            print(f"Moved file {pres}")
-
-
-def delete_files(files, dry=True):
-    for f in files:
-        if dry:
-            print(f"✖ {relpath(f)}")
-        else:
-            os.remove(f)
-            print(f"Deleted {relpath(f)}")
-
-
 if __name__ == '__main__':
-    matched_files = get_matching_files(args.regex, recursive=args.recursive)
+    matched_files = get_matching_files(
+        args.regex,
+        recursive=args.recursive,
+        files_only=args.files_only,
+        dirs_only=args.dirs_only,
+        ignore_case=args.ignore_case,
+        invert_match=args.invert_match,
+    )
     if args.move:
         move_files(matched_files, args.move[0], dry=args.dry, create_dirs=args.create_dirs)
         exit(0)
@@ -105,6 +55,20 @@ if __name__ == '__main__':
         if args.keep:
             matched_files = set(all_filepaths) - set(matched_files)
         delete_files(matched_files, dry=args.dry)
+    elif args.automatic and args.automatic[0] == 'group-by-name':
+        groups = autogroup_files(matched_files)
+        for k, vs in groups.items():
+            print(f"🗀  {k}")
+            for v in vs:
+                print(f"   ┄ {relpath(v)}")
+        if not args.dry:
+            print('-----------------------------------------------------------------------')
+            for k, vs in groups.items():
+                move_files(files=vs, dest=k, dry=args.dry, create_dirs=True)
+            num_grouped = len(groups.values())
+            print(f'Grouping {num_grouped} files out of {len(matched_files)}')
+
+
     else:
         if not matched_files:
             sys.stderr.write('No matches\n')
