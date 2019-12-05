@@ -1,0 +1,22 @@
+#! /usr/bin/python3
+from glob import glob
+
+
+def count_lines(filepath):
+    i = -1
+    with open(filepath) as f:
+        for i, l in enumerate(f):
+            pass
+    return i + 1
+
+
+if __name__ == '__main__':
+    python_files = glob('**/*.py', recursive=True)
+
+    line_count = {}
+    for filepath in python_files:
+        line_count[filepath] = count_lines(filepath)
+
+    total_lines = sum(line_count.values())
+
+    print(f'Total lines: {total_lines}')
