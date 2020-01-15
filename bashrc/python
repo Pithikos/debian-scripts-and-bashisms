@@ -6,5 +6,7 @@ function pyclean () {
   find . -type d -name '.pytest_cache' -exec rm -fr {} \;
 
   echo "Delete SQLite3 databases"
-  find . -type f -name 'db.*' -exec rm {} \;
+  databases=`find . -type f -name 'db.*' -exec file {}  \; | grep SQLite | cut -f 1 -d:`
+  rm `echo "$databases"`
+  echo "Deleted `echo $databases`"
 }
