@@ -122,8 +122,9 @@ function photo_filter_portrait () {
 	fi
 
 	for f in "${@:2}"; do
-		if identify -verbose "$f" | egrep -i 'Orientation: 1' &> /dev/null; then
-			echo $f
+		orientation=`identify -verbose "$f" | egrep 'exif:Orientation:' | cut -d ':' -f 3`
+		if [[ $orientation -ne '1' ]]; then
+			echo "$f"
 		fi
 	done
 }
