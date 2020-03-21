@@ -17,6 +17,8 @@ import ffmpeg
 
 OUTPUT_DIR = 'converted'
 
+AUDIO_QUALITY = 8
+
 AUDIO_CODECS = {
     'ogg': 'libvorbis',
 }
@@ -51,7 +53,7 @@ def create_dirs(path):
 def convert_file(infile, outfile):
     ext = outfile.split('.')[-1]
     stream = ffmpeg.input(infile)
-    stream = ffmpeg.output(stream, outfile, acodec=AUDIO_CODECS[ext])
+    stream = ffmpeg.output(stream, outfile, acodec=AUDIO_CODECS[ext], aq=AUDIO_QUALITY)
     ffmpeg.run(stream)
 
 
