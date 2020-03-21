@@ -17,7 +17,7 @@ import ffmpeg
 
 OUTPUT_DIR = 'converted'
 
-AUDIO_QUALITY = 8
+AUDIO_QUALITY = 5
 
 AUDIO_CODECS = {
     'ogg': 'libvorbis',
