@@ -1,0 +1,88 @@
+#! /usr/bin/python3
+
+"""
+REQUIREMENTS:
+    1. snap install ffmpeg
+    2. pip install ffmpeg-python
+"""
+
+import argparse
+import os
+import re
+import sys
+from glob import glob
+from os.path import join, basename, relpath, isfile, dirname, splitext
+
+import ffmpeg
+
+OUTPUT_DIR = 'converted'
+
+AUDIO_CODECS = {
+    'ogg': 'libvorbis',
+}
+
+
+parser = argparse.ArgumentParser(description=f"Convert audio files in batch. SUPPORTED EXTENSIONS: {', '.join(AUDIO_CODECS.keys())}")
+parser.add_argument('filepattern', type=str, nargs='+', help='file patterns to match (quote)')
+parser.add_argument('extension', type=str, nargs=1, help='extension of output audio file')
+parser.add_argument('--dry', dest='dry', action='store_true', default=False, help='show what would actually happen')
+parser.add_argument('--recursive', '-r', dest='recursive', action='store_true', default=False)
+parser.add_argument('-p', dest='create_dirs', action='store_true', default=False, help='create directory structures (otherwise flat)')
+args = parser.parse_args()
+
+
+def get_files(pattern, recursive=False):
+    if recursive:
+        matches = glob(join('**', pattern), recursive=recursive)
+    else:
+        matches = glob(pattern, recursive=recursive)
+    return [m for m in matches if isfile(m)]
+
+
+def create_dirs(path):
+    if args.dry:
+        return
+    try:
+        os.makedirs(path)
+    except FileExistsError:
+        pass
+
+
+def convert_file(infile, outfile):
+    ext = outfile.split('.')[-1]
+    stream = ffmpeg.input(infile)
+    stream = ffmpeg.output(stream, outfile, acodec=AUDIO_CODECS[ext])
+    ffmpeg.run(stream)
+
+
+if __name__ == '__main__':
+    extension = args.extension[0]
+    if extension not in AUDIO_CODECS:
+        print(f"Extension {extension} not supported. Try any of: {', '.join(AUDIO_CODECS.keys())}.")
+        sys.exit(1)
+
+    # Get files
+    matched_files = []
+    for pattern in args.filepattern:
+        matched_files.extend(
+            get_files(pattern, args.recursive)
+        )
+
+    # Output files
+    create_dirs(OUTPUT_DIR)
+    for infile in matched_files:
+        filename = basename(infile)
+        barename, _ = splitext(filename)
+        dirpath = dirname(infile)
+
+        outdir = OUTPUT_DIR
+        if args.create_dirs:
+            outdir = join(outdir, dirpath)
+            create_dirs(outdir)
+
+        outfile = join(outdir, f"{barename}.{extension}")
+
+        if args.dry:
+            print(f"{infile}\t-->   {outfile}")
+        else:
+            convert_file(infile, outfile)
