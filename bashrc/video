@@ -1,3 +1,5 @@
+#!/bin/bash
+
 function file_barename () {
 	echo "$1" | cut -f 1 -d.
 }
@@ -9,7 +11,6 @@ function video_convert_postfriendly () { # image size
 		echo "You need to install ffmpeg";
 		return 1
 	fi
-	
 	if [ ! $1 ]; then
 		echo "You need to give at least one input video file"
 		return 1
@@ -30,7 +31,6 @@ function video_generate_deshake_files () {
                 return 1
         fi
 
-	
 	for f in "${@:1}"; do
 		barename=$(file_barename "$f")
 		ffmpeg -i "$f" -vf "vidstabdetect=shakiness=10:accuracy=15:result=${barename}.trf" -f null -
