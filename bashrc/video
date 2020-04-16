@@ -5,6 +5,10 @@ function file_barename () {
 }
 
 
+VIDEO_BITRATE='240M'
+VIDEO_CODEC='dnxhd'
+
+
 # Convert AVCHD from Sony into a more post-production friendly format
 function video_convert_postfriendly () { # image size
 	if ! ffmpeg -version &> /dev/null; then
@@ -19,7 +23,7 @@ function video_convert_postfriendly () { # image size
 	mkdir ./converted
 	for f in "${@:1}"; do
 		barename=$(file_barename "$f")
-		ffmpeg -i "$f" -c:v dnxhd -vf "scale=1280:720,fps=30000/1001,format=yuv422p" -b:v 110M -c:a pcm_s16le "./converted/${barename}.mov"
+		ffmpeg -i "$f" -c:v $VIDEO_CODEC -vf "scale=1280:720,fps=30000/1001,format=yuv422p" -b:v 110M -c:a pcm_s16le "./converted/${barename}.mov"
 	done
 
 }
@@ -50,6 +54,30 @@ function video_deshake () {
 	# Then deshake to post-edit format
 	for f in "${@:1}"; do
 		barename=$(file_barename "$f")
-		ffmpeg -i "$f" -vf "vidstabtransform=smoothing=30:input=${barename}.trf,scale=1920:1080,fps=50,format=yuv422p10" -c:v dnxhd -b:v 365M -c:a copy "${barename}_deshaked.mov"
+		ffmpeg -i "$f" -vf "vidstabtransform=smoothing=30:input=${barename}.trf" -c:v $VIDEO_CODEC -pix_fmt yuv422p -b:v "$VIDEO_BITRATE" -c:a copy "${barename}_deshaked.mov"
 	done
+}
+
+
+function video_to_dnxhd () {
+
+	if [ ! ffmpeg -filters 2> /dev/null | grep vidstab > /dev/null ]; then
+		echo "Filter vidstab not installed. Use the static ffmpeg from https://www.johnvansickle.com/ffmpeg/"
+		return 1
+	fi
+
+	if [ ! $1 ]; then
+    echo "You need to give at least one input video file"
+    return 1
+  fi
+
+	for f in "${@:1}"; do
+		barename=$(file_barename "$f")
+		ffmpeg -i "$f" -c:v $VIDEO_CODEC -pix_fmt yuv422p -b:v "$VIDEO_BITRATE" -c:a copy "${barename}.mov"
+
+		# Also create deshake version
+		ffmpeg -i "$f" -vf "vidstabdetect=shakiness=10:accuracy=15:result=${barename}.trf" -f null -
+		ffmpeg -i "$f" -vf "vidstabtransform=smoothing=30:input=${barename}.trf" -c:v $VIDEO_CODEC -pix_fmt yuv422p -b:v "$VIDEO_BITRATE" -c:a copy "${barename}_deshaked.mov"
+
+  done
 }
