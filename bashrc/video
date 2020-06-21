@@ -5,7 +5,8 @@ function file_barename () {
 }
 
 
-VIDEO_BITRATE='240M'
+VIDEO_BITRATE='240M' # 50fps 1080 240br
+VIDEO_BITRATE='75M' # 50fps 1080 75br
 VIDEO_CODEC='dnxhd'
 
 
@@ -42,21 +43,21 @@ function video_generate_deshake_files () {
 }
 
 
-function video_deshake () {
-  if [ ! $1 ]; then
-    echo "You need to give at least one input video file"
-    return 1
-  fi
-
-	# First generate deshake files
-	video_generate_deshake_files "${@:1}"
-
-	# Then deshake to post-edit format
-	for f in "${@:1}"; do
-		barename=$(file_barename "$f")
-		ffmpeg -i "$f" -vf "vidstabtransform=smoothing=30:input=${barename}.trf" -c:v $VIDEO_CODEC -pix_fmt yuv422p -b:v "$VIDEO_BITRATE" -c:a copy "${barename}_deshaked.mov"
-	done
-}
+# function video_deshake () {
+#   if [ ! $1 ]; then
+#     echo "You need to give at least one input video file"
+#     return 1
+#   fi
+#
+# 	# First generate deshake files
+# 	video_generate_deshake_files "${@:1}"
+#
+# 	# Then deshake to post-edit format
+# 	for f in "${@:1}"; do
+# 		barename=$(file_barename "$f")
+# 		ffmpeg -i "$f" -vf "vidstabtransform=smoothing=30:input=${barename}.trf" -c:v $VIDEO_CODEC -pix_fmt yuv422p -b:v "$VIDEO_BITRATE" -c:a copy "${barename}_deshaked.mov"
+# 	done
+# }
 
 
 function video_to_dnxhd () {
@@ -75,9 +76,53 @@ function video_to_dnxhd () {
 		barename=$(file_barename "$f")
 		ffmpeg -i "$f" -c:v $VIDEO_CODEC -pix_fmt yuv422p -b:v "$VIDEO_BITRATE" -c:a copy "${barename}.mov"
 
+		# TODO: Apply denoise
+
 		# Also create deshake version
-		ffmpeg -i "$f" -vf "vidstabdetect=shakiness=10:accuracy=15:result=${barename}.trf" -f null -
-		ffmpeg -i "$f" -vf "vidstabtransform=smoothing=30:input=${barename}.trf" -c:v $VIDEO_CODEC -pix_fmt yuv422p -b:v "$VIDEO_BITRATE" -c:a copy "${barename}_deshaked.mov"
+		# ffmpeg -i "$f" -vf "vidstabdetect=shakiness=10:accuracy=15:result=${barename}.trf" -f null -
+		# ffmpeg -i "$f" -vf "vidstabtransform=smoothing=30:input=${barename}.trf" -c:v $VIDEO_CODEC -pix_fmt yuv422p -b:v "$VIDEO_BITRATE" -c:a copy "${barename}_deshaked.mov"
 
   done
+}
+
+
+function video_to_720p () {
+	if [ ! $1 ]; then
+		echo "You need to give at least one input video file"
+		return 1
+	fi
+	for f in "${@:1}"; do
+		barename=$(file_barename "$f")
+		ext=$(file_extension "$f")
+		ffmpeg -i "$f" -vcodec libx265 -crf 23 -vf scale=-1:720 -c:a copy "${barename}_720p.${ext}"
+	done
+}
+
+
+# Generate multiple denoised files for comparison
+function video_test_denoise () {
+	if [ ! $1 ]; then
+		echo "You need to give excactly one input video file"
+		return 1
+	fi
+	barename=$(file_barename "$1")
+	ext=$(file_extension "$1")
+	crf='23'
+	clip_duration='5'  # in secs
+
+	# Ensure we can redirect timing to a file
+	TIMEFORMAT=%R
+	timings_file=`mktemp`
+	echo "*** STORING TIMINGS AT '$timings_file' ***"
+
+	# Loop through all desired filters one-by-one
+	for filter in "bm3d" "dctdnoiz" "hqdn3d" "owdenoise" "removegrain" "vaguedenoiser" "nlmeans"; do
+		command="ffmpeg -i $1 -to $clip_duration -vcodec libx265 -crf $crf -vf '${filter}' ${barename}_720p_crf${crf}_denoise__${filter}.${ext}"
+		saved_timing=`mktemp`
+		/usr/bin/time --format="%E real" -o "$saved_timing" $command
+		elapsed=$(cat "$saved_timing")
+		echo "${filter} ${elapsed}\n" >> "$timings_file"
+	done
+
+	cat $timings_file
 }
