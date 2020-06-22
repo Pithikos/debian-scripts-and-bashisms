@@ -106,9 +106,8 @@ function video_test_denoise () {
 		return 1
 	fi
 	barename=$(file_barename "$1")
-	ext=$(file_extension "$1")
-	crf='23'
-	clip_duration='5'  # in secs
+	target_dir="denoised"
+	clip_duration='10'  # in secs
 
 	# Ensure we can redirect timing to a file
 	TIMEFORMAT=%R
@@ -116,12 +115,14 @@ function video_test_denoise () {
 	echo "*** STORING TIMINGS AT '$timings_file' ***"
 
 	# Loop through all desired filters one-by-one
-	for filter in "bm3d" "dctdnoiz" "hqdn3d" "owdenoise" "removegrain" "vaguedenoiser" "nlmeans"; do
-		command="ffmpeg -i $1 -to $clip_duration -vcodec libx265 -crf $crf -vf '${filter}' ${barename}_720p_crf${crf}_denoise__${filter}.${ext}"
-		saved_timing=`mktemp`
-		/usr/bin/time --format="%E real" -o "$saved_timing" $command
-		elapsed=$(cat "$saved_timing")
-		echo "${filter} ${elapsed}\n" >> "$timings_file"
+	mkdir -p "$target_dir"
+	for filter in "hqdn3d" "removegrain" "vaguedenoiser" "bm3d" "dctdnoiz" "atadenoise" "nlmeans" "owdenoise"; do
+		# No audio and lossless video so we can focus on the denoise algorithm
+		start_time="$(date -u +%s)"
+		ffmpeg -i $1 -t $clip_duration -an -c:v dnxhd -pix_fmt yuv422p -b:v 240M -vf $filter $target_dir/${barename}_losslessx265_denoise__${filter}.mov
+		end_time="$(date -u +%s)"
+		elapsed="$(($end_time-$start_time))"
+		echo "${filter} ${elapsed}s" >> "$timings_file"
 	done
 
 	cat $timings_file
