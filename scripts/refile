@@ -53,7 +53,8 @@ if __name__ == '__main__':
         exit(0)
     elif args.keep or args.remove:
         if args.keep:
-            matched_files = set(all_filepaths) - set(matched_files)
+            _all_files = all_files(recursive=args.recursive, files_only=args.files_only, dirs_only=args.dirs_only)
+            matched_files = set(_all_files) - set(matched_files)
         delete_files(matched_files, dry=args.dry)
     elif args.automatic and args.automatic[0] == 'group-by-name':
         groups = autogroup_files(matched_files)
