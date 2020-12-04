@@ -82,11 +82,11 @@ function ensure_dir_not_exists () {
 # Create a folder resized/
 function photo_resize () {
 	outdir='resized'
-	ensure_dir_not_exists "$outdir" || return 1
+	# ensure_dir_not_exists "$outdir" || return 1
 	photo_copy "$@" || return 1
 
 	# Move files one by one
-	mkdir "$outdir"
+	mkdir -p "$outdir"
 	for f in "${@:2}"; do
 		resized_file="$(file_barename $f)_resized.$(file_extension $f)"
 		mv "$resized_file" "${outdir}/${f}"
