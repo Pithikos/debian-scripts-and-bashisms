@@ -1,0 +1,31 @@
+#! /usr/bin/python3
+import argparse
+import sys
+
+parser = argparse.ArgumentParser(description='Hashtag tool.')
+parser.add_argument('hashtags', type=str, nargs='+', help='one or more regular expressions to match')
+
+# parser.add_argument('--info', dest='info', default=True, action='store_true', help='show info about given hashtags (default behaviour)')
+
+args = parser.parse_args()
+
+
+if __name__ == '__main__':
+    hashtags = []
+
+    # Streamline input so it works for different formats
+    for hashtag in args.hashtags:
+        hashtags.extend(hashtag.split(" "))
+    hashtags = [h.lstrip("#") for h in hashtags]
+
+    # Check duplicates
+    hashtags.sort()
+    duplicates = []
+    for i, hashtag in enumerate(hashtags[:-1]):
+        if hashtags[i] == hashtags[i+1]:
+            duplicates.append(hashtag)
+    if duplicates:
+        print("Duplicate hashtags:")
+        for duplicate in duplicates:
+            print(f"#{duplicate}")
+        sys.exit(1)
