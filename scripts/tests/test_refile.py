@@ -2,7 +2,7 @@ import sys
 from os.path import dirname
 sys.path.insert(0, dirname(dirname(__file__)))
 
-from refile import autogroup_files
+from refile import *
 
 
 def test_autogroup_files():
@@ -28,3 +28,22 @@ def test_autogroup_files_titleize():
         'C': ['C - song.mp3'],
     }
     assert autogroup_files(files, omit_single_files=True) == {}
+
+
+def test_move_files():
+    # TODO: ..
+    pass
+
+
+def test_eval_filename_pattern():
+    # Asterisk
+    assert eval_filename_pattern("my_file.txt", "_: test-{*}") == "test-my_file.txt"
+
+    # File parts
+    assert eval_filename_pattern("my_file.txt", "_: {2}-{1}.{ext}") == "file-my.txt"
+    assert eval_filename_pattern(
+        "1970_September_Statement.pdf", "_: bank-statement-{1}-{2}.{ext}") == \
+        "bank-statement-1970-September.pdf"
+
+    # Paths
+    assert eval_filename_pattern("/my_dir/my_file.txt", "_: test-{*}") == "/my_dir/test-my_file.txt"

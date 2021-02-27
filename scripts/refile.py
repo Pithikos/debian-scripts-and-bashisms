@@ -3,7 +3,7 @@ import re
 import sys
 from copy import copy
 from glob import glob
-from os.path import join, basename, relpath, isfile
+from os.path import join, basename, relpath, isfile, dirname
 
 
 def all_files(recursive=False, files_only=False, dirs_only=False):
@@ -89,14 +89,23 @@ def show_files(files):
         print(f"✔  {relpath(f)}")
 
 
-def move_files(files, dest, dry=True, create_dirs=False):
+def move_file(orig, dest, dry=True):
+    pres = f"{relpath(orig)} ➜ {relpath(dest)}"
+    if dry:
+        print(pres)
+    else:
+        os.replace(orig, dest)
+        print(f"Moved file {pres}")
+
+
+def move_files_to_dir(files, dest_dir, dry=True, create_dirs=False):
     if create_dirs:
         try:
-            os.makedirs(dest)
+            os.makedirs(dest_dir)
         except FileExistsError:
             pass
     for f in files:
-        target = join(dest, basename(f))
+        target = join(dest_dir, basename(f))
         pres = f"{relpath(f)} ➜ {relpath(target)}"
         if dry:
             print(pres)
@@ -112,3 +121,32 @@ def delete_files(files, dry=True):
         else:
             os.remove(f)
             print(f"Deleted {relpath(f)}")
+
+
+def eval_filename_pattern(filepath, pattern):
+    if ':' not in pattern:
+        raise Exception("Must prepend the pattern with a separator e.g. '-: test-$1'")
+
+    filename = basename(filepath)
+    sep, target = pattern.split(':')
+    file_ext = filename.split('.')[-1]
+    file_barename = filename.replace("." + file_ext, "")
+    file_parts = file_barename.split(sep)
+
+    # Replace asterisk with the full filename
+    target = target.replace("{*}", filename)
+
+    # special: $ext
+    target = target.replace("{ext}", file_ext)
+
+    # Replace pattern with file parts
+    for i, file_part in enumerate(file_parts, 1):
+        target = target.replace("{%s}" % i, file_part)
+
+    return join(dirname(filepath), target.strip())
+
+
+def rename_files(files, pattern, dry=True):
+    for f in files:
+        target = eval_filename_pattern(f, pattern)
+        move_file(f, target, dry)

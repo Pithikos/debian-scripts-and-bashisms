@@ -13,6 +13,7 @@ parser.add_argument('regex', type=str, nargs='+', help='one or more regular expr
 parser.add_argument('--keep', dest='keep', default=None, action='store_true', help='keep files matching regular expressions')
 parser.add_argument('--remove', dest='remove', default=None, action='store_true', help='remove files matching regular expressions')
 parser.add_argument('--move', dest='move', nargs=1, help='remove files matching regular expressions')
+parser.add_argument('--rename', dest='rename', nargs=1, help='rename files. Pattern is of format "<sep>: <dest pattern>"')
 
 parser.add_argument('--dry', dest='dry', action='store_true', default=False, help='show what would actually happen')
 parser.add_argument('--invert-match', '-v', dest='invert_match', action='store_true', default=False)
@@ -49,7 +50,10 @@ if __name__ == '__main__':
         invert_match=args.invert_match,
     )
     if args.move:
-        move_files(matched_files, args.move[0], dry=args.dry, create_dirs=args.create_dirs)
+        move_files_to_dir(matched_files, args.move[0], dry=args.dry, create_dirs=args.create_dirs)
+        exit(0)
+    elif args.rename:
+        rename_files(matched_files, args.rename[0], dry=args.dry)
         exit(0)
     elif args.keep or args.remove:
         if args.keep:
