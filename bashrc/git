@@ -1,4 +1,5 @@
 alias gl='git log --graph --oneline --decorate --branches'
+alias gla='git log --all --graph --pretty=format:"%C(auto)%h%d %Cblue%aN %Cgreen%ad %Creset %s %Creset" --date=format-local:"%Y-%m-%d %H:%M"'
 alias gs='git status'
 alias gp='git push'
 alias gpf='git push --force-with-lease'
