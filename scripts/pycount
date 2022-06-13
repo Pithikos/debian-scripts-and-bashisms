@@ -19,4 +19,11 @@ if __name__ == '__main__':
 
     total_lines = sum(line_count.values())
 
-    print(f'Total lines: {total_lines}')
+    # Show LOC per file
+    file_pad = max([len(k) for k in line_count.keys()])
+    count_pad = max([len(str(v)) for v in line_count.values()])
+    for (filename, count) in sorted(tuple(line_count.items()), key=lambda tpl: tpl[1], reverse=True):
+        print(f'{filename.ljust(file_pad)} {str(count).rjust(count_pad)}')
+
+    print("---------------------------")
+    print(f'Total {"".ljust(file_pad-7)} {str(total_lines).rjust(count_pad)}')
