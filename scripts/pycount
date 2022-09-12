@@ -39,4 +39,5 @@ if __name__ == '__main__':
         print(f'{filename.ljust(file_pad)} {str(count).rjust(count_pad)}')
 
     print("---------------------------")
-    print(f'Total {"".ljust(file_pad-7)} {str(total_lines).rjust(count_pad)}')
+    print(f'Total {"".ljust(file_pad-7)} {str(total_lines).rjust(count_pad)} LOC')
+    print(f'Total {"".ljust(file_pad-7)} {str(len(python_files)).rjust(count_pad+1)} files')
