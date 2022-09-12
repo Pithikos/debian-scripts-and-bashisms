@@ -1,17 +1,30 @@
 #! /usr/bin/python3
 from glob import glob
 
+BLACKLISTED_DIRS = {
+    "env",
+    "venv",
+    ".env",
+    ".venv",
+}
+
 
 def count_lines(filepath):
-    i = -1
-    with open(filepath) as f:
-        for i, l in enumerate(f):
-            pass
-    return i + 1
+    return open(filepath).read().count('\n')
 
 
 if __name__ == '__main__':
-    python_files = glob('**/*.py', recursive=True)
+
+    # Omit python files from blacklisted dirs
+    python_files = set()
+    for python_filepath in glob('**/*.py', recursive=True):
+        skip = False
+        for blacklisted_dir in BLACKLISTED_DIRS:
+            if f"/{blacklisted_dir}/" in python_filepath:
+                skip = True
+                break
+        if not skip:
+            python_files.add(python_filepath)
 
     line_count = {}
     for filepath in python_files:
