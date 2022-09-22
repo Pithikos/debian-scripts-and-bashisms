@@ -20,7 +20,7 @@ if __name__ == '__main__':
     for python_filepath in glob('**/*.py', recursive=True):
         skip = False
         for blacklisted_dir in BLACKLISTED_DIRS:
-            if f"/{blacklisted_dir}/" in python_filepath:
+            if python_filepath.startswith(f"{blacklisted_dir}/") or f"/{blacklisted_dir}/" in python_filepath:
                 skip = True
                 break
         if not skip:
