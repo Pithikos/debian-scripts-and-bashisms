@@ -125,25 +125,23 @@ def delete_files(files, dry=True):
 
 def eval_filename_pattern(filepath, pattern):
     if ':' not in pattern:
-        raise Exception("Must prepend the pattern with a separator e.g. '-: test-$1'")
+        raise Exception("Must user two regular expressions separated with colon e.g. '(.*).jpg.bak:$1.jpg'")
 
+    re_from, re_to = pattern.split(":")
     filename = basename(filepath)
-    sep, target = pattern.split(':')
-    file_ext = filename.split('.')[-1]
-    file_barename = filename.replace("." + file_ext, "")
-    file_parts = file_barename.split(sep)
 
-    # Replace asterisk with the full filename
-    target = target.replace("{*}", filename)
+    # Find matches in original filename
+    matches = re.match(re_from, filename).groups()
 
-    # special: $ext
-    target = target.replace("{ext}", file_ext)
+    # Rebuild filename
+    placeholders = re.findall('\$[0-9]*', re_to)
+    if len(placeholders) < len(matches):
+        raise Exception(f"Expected {len(matches)} placeholders, got {len(placeholders)}")
+    new_filename = re_to.lstrip(" ")
+    for i, matched_string in enumerate(matches, 1):
+        new_filename = new_filename.replace(f"${i}", matched_string)
 
-    # Replace pattern with file parts
-    for i, file_part in enumerate(file_parts, 1):
-        target = target.replace("{%s}" % i, file_part)
-
-    return join(dirname(filepath), target.strip())
+    return join(dirname(filepath), new_filename.strip())
 
 
 def rename_files(files, pattern, dry=True):
