@@ -128,3 +128,26 @@ function photo_filter_portrait () {
 		fi
 	done
 }
+
+
+# Unzip freepik zips
+function freepik_unzip {
+  for f in $@; do
+    barename=`echo "${f%%.*}"`
+    tempdir=`mktemp -d`
+
+    # Unzip
+    unzip $f -d "$tempdir" > /dev/null
+
+    # Rename files
+    for unzipped in $tempdir/*; do
+        ext=`echo "${unzipped##*.}"`
+        new_filename="${barename}.${ext}"
+        cp "${unzipped}" "$new_filename"
+        echo "Unzipped $new_filename"
+    done
+
+    # Cleanup
+    rm -fr "$tempdir"
+    done
+}
