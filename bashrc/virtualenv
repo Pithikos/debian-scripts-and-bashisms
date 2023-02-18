@@ -1,16 +1,25 @@
 # Original source: https://gist.github.com/Willyfrog/3226639
 
+# VENV patterns to look for
+VENV_DIRS=".venv venv .env env .virtualenv"
+
+
 _LAST_VIRTUAL_ENV=''
 
-_upfind_dir(){
-	_dir=`pwd`
-	while [[ $_dir != / ]] ; do
-		guess_path="$_dir"/"$1"
-		if [[ -d "$guess_path" ]]; then
-			echo "$guess_path"
-			return 0
-		fi
-		_dir=`dirname "$_dir"`
+_upfind_venv(){
+	# Iterate over all possible venv patterns from current
+	# directory up until root
+	path=$(pwd)
+	while [ "$path" != "/" ]; do
+
+		# Iterate over env patterns
+		for env_dir in $VENV_DIRS; do
+			if [ -d "$path/$env_dir" ]; then
+				echo "$path/$env_dir"
+				return 0
+			fi
+		done
+		path=$(dirname "$path")
 	done
 	return 1
 }
@@ -18,32 +27,24 @@ _upfind_dir(){
 
 # The virtualenv will be activated automatically when you enter the directory.
 _virtualenv_auto_activate_deactivate() {
+	found_env=`_upfind_venv`
 
-
-	found_env=`_upfind_dir ".venv"`
-	if [ ! "$found_env" ]; then
-		found_env=`_upfind_dir ".env"`
-	fi
-
-	  # Activate
-          if [ "$found_env" != "$VIRTUAL_ENV" ]; then
-              _VENV_NAME=$(basename `pwd`)
-              echo Activating "$found_env" ..
-              VIRTUAL_ENV_DISABLE_PROMPT=1
-              source "$found_env"/bin/activate
-	      if [ "$?" ]; then
-	          VIRTUAL_ENV="$found_env"
-		  _OLD_VIRTUAL_PS1="$PS1"
-                  PS1="($_VENV_NAME)$PS1"
-                  export PS1
-	      fi
-     	   else
+	# Activate
+	if [ "$found_env" ] && [ "$found_env" != "$VIRTUAL_ENV" ]; then
+		_VENV_NAME=$(basename `pwd`)
+		echo Activating "$found_env" ..
+		VIRTUAL_ENV_DISABLE_PROMPT=1
+		source "$found_env"/bin/activate
+		if [ "$?" ]; then
+			VIRTUAL_ENV="$found_env"
+		fi
+	else
 		# Deactivate
-       		if [ "$VIRTUAL_ENV" ] && [ ! "$found_env" ]; then
-         		echo Deactivating VirtualEnv
-         		deactivate
-       		fi
-     	   fi
+		if [ "$VIRTUAL_ENV" ] && [ ! "$found_env" ]; then
+			echo Deactivating "$VIRTUAL_ENV" ..
+			deactivate
+		fi
+	fi
 }
 
 export PROMPT_COMMAND="_virtualenv_auto_activate_deactivate; $PROMPT_COMMAND"
