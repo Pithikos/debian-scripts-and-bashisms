@@ -1,5 +1,5 @@
 # Compact history
-export HISTCONTROL=erasedups
+export HISTCONTROL=erasedups:ignorespace
 
 # Infinite history
 export HISTSIZE=
@@ -22,3 +22,6 @@ shopt -s cdspell
 
 # cd by typing the dir name
 shopt -s autocd
+
+# Python specific
+PYTHONDONTWRITEBYTECODE=True
