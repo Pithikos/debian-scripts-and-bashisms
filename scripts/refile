@@ -7,7 +7,10 @@ from glob import glob
 from os.path import join, basename, relpath, isfile
 from refile import *
 
-parser = argparse.ArgumentParser(description='Remove files with regular expression.')
+parser = argparse.ArgumentParser(
+    description='Remove files with regular expression.',
+    epilog="Example: refile '.*\.jpeg' --rename '(.*)\.jpeg:mypic-$1.jpg' --dry"
+)
 parser.add_argument('regex', type=str, nargs='+', help='one or more regular expressions to match')
 
 parser.add_argument('--keep', dest='keep', default=None, action='store_true', help='keep files matching regular expressions')
