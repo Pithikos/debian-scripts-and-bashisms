@@ -9,7 +9,7 @@ from refile import *
 
 parser = argparse.ArgumentParser(
     description='Remove files with regular expression.',
-    epilog="Example: refile '.*\.jpeg' --rename '(.*)\.jpeg:mypic-$1.jpg' --dry"
+    epilog="Example: refile '(.*)\.jpeg' --rename 'mypic-$1.jpg' --dry"
 )
 parser.add_argument('regex', type=str, nargs='+', help='one or more regular expressions to match')
 
@@ -56,7 +56,16 @@ if __name__ == '__main__':
         move_files_to_dir(matched_files, args.move[0], dry=args.dry, create_dirs=args.create_dirs)
         exit(0)
     elif args.rename:
-        rename_files(matched_files, args.rename[0], dry=args.dry)
+        pattern = args.rename[0]
+
+        # Forbid placeholders in combination with --invert-match, since placeholders can't
+        # be evaluated in that case
+        pattern_placeholder_count = len(re.findall(r'\$\d+', pattern))
+        if pattern_placeholder_count and args.invert_match:
+            print(f'Cannot use placeholders in --rename in combination with --invert-match: {pattern}')
+            exit(1)
+
+        rename_files(matched_files, pattern, dry=args.dry)
         exit(0)
     elif args.keep or args.remove:
         if args.keep:

@@ -18,31 +18,39 @@ def all_files(recursive=False, files_only=False, dirs_only=False):
 
 
 def get_matching_files(regexes, recursive, ignore_case, files_only, dirs_only, invert_match):
-    """ Get all files matching the regex """
+    """ Get all files matching the regex, along with their match objects """
     all_filepaths = all_files(recursive, files_only, dirs_only)
-    matched = []
+    filematches = []
     for filepath in all_filepaths:
         filename = basename(filepath)
         for regex in regexes:
             if ignore_case:
-                matches = re.findall(regex, filename, flags=re.IGNORECASE)
+                matches = re.finditer(regex, filename, flags=re.IGNORECASE)
             else:
-                matches = re.findall(regex, filename)
-            if matches:
-                matched.append(filepath)
+                matches = re.finditer(regex, filename)
+            for match in matches:
+                # Append the filepath and the match object as a tuple
+                filematches.append((filepath, match))
                 break
+
     if invert_match:
-        matched = set(all_filepaths) - set(matched)
-    return matched
+        filenames_found = [f for f, _ in filematches]
+        inverted_filematches = []
+        for filepath in all_filepaths:
+            if filepath not in filenames_found:
+                inverted_filematches.append((filepath, None))
+        return inverted_filematches
+
+    return filematches
 
 
-def autogroup_files(files, omit_single_files=True):
+def autogroup_files(filematches, omit_single_files=True):
     """
     Heuristically group files by common naming conventions
     """
     delimiters = (' Feat. ', ' feat ', ' - ',)
     groups = {}
-    for f in files:
+    for f, match in filematches:
         filename = basename(f)
         for deli in delimiters:
             items = filename.split(deli)
@@ -75,10 +83,10 @@ def autogroup_files(files, omit_single_files=True):
     return groups
 
 
-def show_files(files):
+def show_files(filematches):
     _dirs = []
     _files = []
-    for f in files:
+    for f, _ in filematches:
         if isfile(f):
             _files.append(f)
         else:
@@ -87,6 +95,22 @@ def show_files(files):
         print(f"🗀  {relpath(d)}")
     for f in _files:
         print(f"✔  {relpath(f)}")
+
+
+def move_files_to_dir(filematches, dest_dir, dry=True, create_dirs=False):
+    if create_dirs:
+        try:
+            os.makedirs(dest_dir)
+        except FileExistsError:
+            pass
+    for f, match in filematches:
+        target = join(dest_dir, basename(f))
+        pres = f"{relpath(f)} ➜ {relpath(target)}"
+        if dry:
+            print(pres)
+        else:
+            os.replace(f, target)
+            print(f"Moved file {pres}")
 
 
 def move_file(orig, dest, dry=True):
@@ -98,53 +122,32 @@ def move_file(orig, dest, dry=True):
         print(f"Moved file {pres}")
 
 
-def move_files_to_dir(files, dest_dir, dry=True, create_dirs=False):
-    if create_dirs:
-        try:
-            os.makedirs(dest_dir)
-        except FileExistsError:
-            pass
-    for f in files:
-        target = join(dest_dir, basename(f))
-        pres = f"{relpath(f)} ➜ {relpath(target)}"
+def delete_files(filematches, dry=True):
+    for filename, match in filematches:
         if dry:
-            print(pres)
+            print(f"✖ {relpath(filename)}")
         else:
-            os.replace(f, target)
-            print(f"Moved file {pres}")
+            os.remove(filename)
+            print(f"Deleted {relpath(filename)}")
 
 
-def delete_files(files, dry=True):
-    for f in files:
-        if dry:
-            print(f"✖ {relpath(f)}")
-        else:
-            os.remove(f)
-            print(f"Deleted {relpath(f)}")
+def rename_files(filematches, pattern, dry=True):
+    pattern_placeholder_count = len(re.findall(r'\$\d+', pattern))
+    for filename, match in filematches:
 
+        # Evaluate placeholders (e.g. $1, $2, ...)
+        new_filename = pattern
+        if match:
+            
+            match_group_count = len(match.groups())
+            if pattern_placeholder_count > match_group_count:
+                print(f"Pattern has {pattern_placeholder_count} placeholders, but only {match_group_count} groups were found in the regex")
+                exit(1)
 
-def eval_filename_pattern(filepath, pattern):
-    if ':' not in pattern:
-        raise Exception("Must user two regular expressions separated with colon e.g. '(.*).jpg.bak:$1.jpg'")
+            if len(match.groups()) > 0:
+                new_filename = pattern
 
-    re_from, re_to = pattern.split(":")
-    filename = basename(filepath)
+            for i, group in enumerate(match.groups()):
+                new_filename = new_filename.replace(f'${i + 1}', group)
 
-    # Find matches in original filename
-    matches = re.match(re_from, filename).groups()
-
-    # Rebuild filename
-    placeholders = re.findall('\$[0-9]*', re_to)
-    if len(placeholders) < len(matches):
-        raise Exception(f"Expected {len(matches)} placeholders, got {len(placeholders)}")
-    new_filename = re_to.lstrip(" ")
-    for i, matched_string in enumerate(matches, 1):
-        new_filename = new_filename.replace(f"${i}", matched_string)
-
-    return join(dirname(filepath), new_filename.strip())
-
-
-def rename_files(files, pattern, dry=True):
-    for f in files:
-        target = eval_filename_pattern(f, pattern)
-        move_file(f, target, dry)
+        move_file(filename, new_filename, dry)
