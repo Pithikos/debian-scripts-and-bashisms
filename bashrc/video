@@ -1,5 +1,10 @@
 #!/bin/bash
 
+killvlc() {
+  kill -9 $(pidof vlc) 2> /dev/null
+}
+
+
 function file_barename () {
 	echo "$1" | cut -f 1 -d.
 }
@@ -91,10 +96,11 @@ function video_to_720p () {
 		echo "You need to give at least one input video file"
 		return 1
 	fi
+	mkdir -p converted_720p
 	for f in "${@:1}"; do
 		barename=$(file_barename "$f")
 		ext=$(file_extension "$f")
-		ffmpeg -i "$f" -vcodec libx265 -crf 23 -vf scale=-1:720 -c:a copy "${barename}_720p.${ext}"
+		ffmpeg -i "$f" -vcodec libx265 -crf 20 -vf scale=-1:720 -preset veryslow "converted_720p/${barename}_720p.${ext}"
 	done
 }
 
