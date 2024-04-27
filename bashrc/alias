@@ -3,7 +3,7 @@ WORKSPACE_DIR=~/workspace
 LASTFILE_DEPTH=3
 alias lastproject='ls -td ${WORKSPACE_DIR}/*/ | head -n 1'
 alias lastfile='ls -t ${WORKSPACE_DIR}/*/* | head -n 1'
-alias lastfile='find ${WORKSPACE_DIR} -maxdepth ${LASTFILE_DEPTH} -type f -printf "%T@ %p\n" | sort -rn | head -n 1 | cut -d " " -f 2-'
+alias lastfile='find ${WORKSPACE_DIR} -maxdepth ${LASTFILE_DEPTH} -type f -not -path "**/.*" -printf "%T@ %p\n" | sort -rn | head -n 1 | cut -d " " -f 2-'
 alias ~~='cd $(dirname $(lastfile))'
 
 # Listing files
