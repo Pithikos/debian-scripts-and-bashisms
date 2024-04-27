@@ -1,8 +1,10 @@
 # Changing directory
-alias lastfile="ls -ldt ~/workspace/* ~/workspace/*/*  ~/workspace/*/*/* | head -n 1 | awk '{print \$8}'"
-alias lastproj="lastfile | cut -d '/' -f -5"
-alias ~~="cd `lastproj`"
-alias wa="~~ && atom ."
+WORKSPACE_DIR=~/workspace
+LASTFILE_DEPTH=3
+alias lastproject='ls -td ${WORKSPACE_DIR}/*/ | head -n 1'
+alias lastfile='ls -t ${WORKSPACE_DIR}/*/* | head -n 1'
+alias lastfile='find ${WORKSPACE_DIR} -maxdepth ${LASTFILE_DEPTH} -type f -printf "%T@ %p\n" | sort -rn | head -n 1 | cut -d " " -f 2-'
+alias ~~='cd $(dirname $(lastfile))'
 
 # Listing files
 alias ll='ls -alF'
