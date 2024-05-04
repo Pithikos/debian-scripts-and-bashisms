@@ -1,7 +1,7 @@
 # Find last modified file and directory in workspace
 WORKSPACE_DIR=~/workspace
-LASTFILE_DEPTH=3
-alias lastfile='find ${WORKSPACE_DIR} -maxdepth ${LASTFILE_DEPTH} -type f -not -path "**/.*" -printf "%T@ %p\n" | sort -rn | head -n 1 | cut -d " " -f 2-'
+LASTFILE_DEPTH=4
+alias lastfile='find ${WORKSPACE_DIR} -maxdepth ${LASTFILE_DEPTH} -type f -not -path "**/.*" -not -path "**/__*" -printf "%T@ %p\n" | sort -rn | head -n 1 | cut -d " " -f 2-'
 alias lastproject='echo $WORKSPACE_DIR/$(lastfile | grep -oP "^$WORKSPACE_DIR\K.*" | cut -f 2 -d "/")'
 alias ~~='cd $(lastproject)'
 alias ~~~='cd $(dirname $(lastfile))'
