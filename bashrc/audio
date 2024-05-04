@@ -1,0 +1,21 @@
+#!/bin/bash
+
+
+# White noise generation
+function wn () {
+    default=1
+	case $1 in
+        "1")
+            play -t sl -r44.1k -c2 -b8 -n synth -1 pinknoise .1 60
+            ;;
+        "2")
+            play -t sl -r44.1k -c2 -b8 -n synth -1 whitenoise .1 60
+            ;;
+        "3")
+            play -t sl -r44.1k -c2 -b8 -n synth -1 brownnoise .1 60
+            ;;
+        *)
+            echo "Usage: wn [1|2|3]"
+            ;;
+    esac
+}
