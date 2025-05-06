@@ -9,7 +9,7 @@ from refile import *
 
 parser = argparse.ArgumentParser(
     description='Remove files with regular expression.',
-    epilog="Example: refile '(.*)\.jpeg' --rename 'mypic-$1.jpg' --dry"
+    epilog=r"Example: refile '(.*)\.jpeg' --rename 'mypic-$1.jpg' --dry"
 )
 parser.add_argument('regex', type=str, nargs='+', help='one or more regular expressions to match')
 
