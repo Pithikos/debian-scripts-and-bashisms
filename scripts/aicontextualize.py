@@ -15,6 +15,22 @@ REQUIREMENTS:
     pip install pyperclip
 """
 
+
+def find_files(patterns_string):
+    """Finds all unique, sorted file paths matching the glob patterns."""
+    patterns = [p.strip() for p in patterns_string.split(',')]
+    found_files = set()
+
+    for pattern in patterns:
+        matches = glob.glob(pattern, recursive=True)
+        for match in matches:
+            path = Path(match)
+            if path.is_file():
+                found_files.add(path)
+                
+    return sorted(list(found_files))
+
+
 def get_content_slice(content, lines_spec):
     """
     Slices the content of a file based on a comma-separated spec string.
@@ -82,24 +98,12 @@ def get_content_slice(content, lines_spec):
     return final_content, slice_desc
 
 
-def generate_context(patterns_string, lines=None):
+def generate_context(found_files, lines=None):
     """
     Finds files based on glob patterns, reads them, and formats them
     into a single string for an LLM context.
     """
-    patterns = [p.strip() for p in patterns_string.split(',')]
     output_parts = []
-    found_files = set()
-
-    for pattern in patterns:
-        matches = glob.glob(pattern, recursive=True)
-        for match in matches:
-            path = Path(match)
-            if path.is_file():
-                found_files.add(path)
-
-    if not found_files:
-        return "No files found matching the provided patterns."
 
     for filepath in sorted(found_files):
         try:
@@ -148,10 +152,23 @@ def main():
              "  '50:75'       -> Lines 50 to 75.\n"
              "  ':10,-10:'    -> First 10 AND last 10 lines."
     )
+    parser.add_argument(
+        "-l", "--list-files",
+        action="store_true",
+        help="List all files matching the patterns and exit."
+    )
     
     args = parser.parse_args()
+    
+    found_files = find_files(args.patterns)
+    
+    # If --list-files is used, print paths and exit immediately.
+    if args.list_files:
+        for filepath in found_files:
+            print(filepath)
+        sys.exit(0)
 
-    generated_context = generate_context(args.patterns, args.lines)
+    generated_context = generate_context(found_files, args.lines)
     context_string = f"""
 CODE CONTEXT
 
