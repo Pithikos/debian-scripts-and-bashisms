@@ -151,7 +151,12 @@ def main():
     
     args = parser.parse_args()
 
-    context_string = generate_context(args.patterns, args.lines)
+    generated_context = generate_context(args.patterns, args.lines)
+    context_string = f"""
+CODE CONTEXT
+
+{generated_context}
+"""
 
     if args.clipboard:
         try:
