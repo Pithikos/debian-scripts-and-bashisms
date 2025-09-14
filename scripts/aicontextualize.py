@@ -41,25 +41,18 @@ def get_content_slice(content, lines_spec):
     total_lines = len(all_lines)
     selected_indices = set()
 
-    # Split the spec into individual slice requests (e.g., ':10', '-10:')
     slice_requests = [s.strip() for s in lines_spec.split(',')]
 
     for req in slice_requests:
         try:
             start_str, end_str = req.split(':', 1)
-            
-            # Use Python's slice(start, end) object for robust index handling
             start = int(start_str) if start_str else None
             end = int(end_str) if end_str else None
-
-            # Convert 1-based indexing from user to 0-based for Python
             if start is not None and start > 0:
                 start -= 1
 
-            # Get the actual line indices covered by this slice
             indices = range(*slice(start, end, None).indices(total_lines))
             selected_indices.update(indices)
-
         except (ValueError, TypeError):
             print(f"Error: Invalid slice format in --lines. Use 'START:END'. Got: '{req}'", file=sys.stderr)
             sys.exit(1)
@@ -67,19 +60,11 @@ def get_content_slice(content, lines_spec):
     if not selected_indices:
         return "", f"(no lines selected from spec '{lines_spec}')"
 
-    # Reconstruct the content from the unique, sorted line indices
     sorted_indices = sorted(list(selected_indices))
-    
-    output_blocks = []
-    current_block = []
-    
-    if not sorted_indices:
-        return "", ""
-
-    last_index = sorted_indices[0] - 1 # Start with a non-consecutive index
+    output_blocks, current_block = [], []
+    last_index = -2
 
     for index in sorted_indices:
-        # If there's a gap between the last line and this one, start a new block
         if index > last_index + 1 and current_block:
             output_blocks.append("\n".join(current_block))
             current_block = []
@@ -87,28 +72,30 @@ def get_content_slice(content, lines_spec):
         current_block.append(all_lines[index])
         last_index = index
 
-    # Add the final block of lines
     if current_block:
         output_blocks.append("\n".join(current_block))
 
-    # Join the blocks with a truncation marker
     final_content = "\n\n[... content truncated ...]\n\n".join(output_blocks)
-    slice_desc = f"(lines {lines_spec})"
-    
-    return final_content, slice_desc
+
+    return final_content, f"(lines {lines_spec})"
 
 
 def generate_context(found_files, lines=None):
     """
-    Finds files based on glob patterns, reads them, and formats them
-    into a single string for an LLM context.
+    Reads a list of files and formats them into a single string for an LLM context.
     """
     output_parts = []
+    skipped_count = 0
 
-    for filepath in sorted(found_files):
+    for filepath in found_files:
         try:
             with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
                 full_content = f.read()
+
+            # Skip files that are empty or contain only whitespace
+            if not full_content.strip():
+                skipped_count += 1
+                continue
             
             content_to_use = full_content
             slice_desc = ""
@@ -116,7 +103,8 @@ def generate_context(found_files, lines=None):
             if lines:
                 content_to_use, slice_desc = get_content_slice(full_content, lines)
             
-            header = f"{filepath}".strip()
+            # Re-adding the slice description to the header for clarity
+            header = f"{filepath} {slice_desc}".strip()
             output_parts.append(f"{header}\n```\n{content_to_use}\n```")
 
         except Exception as e:
@@ -162,15 +150,24 @@ def main():
     
     found_files = find_files(args.patterns)
     
-    # If --list-files is used, print paths and exit immediately.
+    if not found_files:
+        print("No files found matching the provided patterns.", file=sys.stderr)
+        sys.exit(0)
+
     if args.list_files:
         for filepath in found_files:
             print(filepath)
         sys.exit(0)
 
     generated_context = generate_context(found_files, args.lines)
-    context_string = f"""
-CODE CONTEXT
+    
+    # If all files were skipped, the context will be empty.
+    if not generated_context.strip():
+        print("All matched files were empty. No context generated.", file=sys.stderr)
+        sys.exit(0)
+
+    # Using your CODE CONTEXT wrapper
+    context_string = f"""CODE CONTEXT
 
 {generated_context}
 """
