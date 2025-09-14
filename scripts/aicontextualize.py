@@ -15,41 +15,49 @@ REQUIREMENTS:
     pip install pyperclip
 """
 
-
-def find_files(patterns_string):
-    """Finds all unique, sorted file paths matching the glob patterns."""
+def find_and_read_files(patterns_string):
+    """
+    Finds all unique, sorted file paths matching the glob patterns,
+    skipping any files that are empty or contain only whitespace.
+    Returns a list of tuples: [(pathlib.Path, str_content), ...].
+    """
     patterns = [p.strip() for p in patterns_string.split(',')]
-    found_files = set()
+    found_files = {} # Use a dict to store Path: content, ensuring uniqueness
 
     for pattern in patterns:
-        matches = glob.glob(pattern, recursive=True)
-        for match in matches:
+        for match in glob.glob(pattern, recursive=True):
             path = Path(match)
-            if path.is_file():
-                found_files.add(path)
-                
-    return sorted(list(found_files))
+            # Ensure it's a file and check size as a quick optimization
+            if path.is_file() and path.stat().st_size > 0:
+                try:
+                    content = path.read_text(encoding='utf-8', errors='ignore')
+                    # If content is not just whitespace, add it
+                    if content.strip():
+                        found_files[path] = content
+                except Exception as e:
+                    print(f"Warning: Could not read file {path}: {e}", file=sys.stderr)
+    
+    # Sort by path and return as a list of tuples
+    sorted_paths = sorted(found_files.keys())
+    return [(path, found_files[path]) for path in sorted_paths]
 
 
 def get_content_slice(content, lines_spec):
     """
     Slices the content of a file based on a comma-separated spec string.
-    Example spec: ':10,-10:' -> first 10 lines and last 10 lines.
     Returns the sliced content and a user-friendly description.
     """
     all_lines = content.splitlines()
     total_lines = len(all_lines)
     selected_indices = set()
 
-    slice_requests = [s.strip() for s in lines_spec.split(',')]
-
-    for req in slice_requests:
+    for req in [s.strip() for s in lines_spec.split(',')]:
         try:
             start_str, end_str = req.split(':', 1)
             start = int(start_str) if start_str else None
             end = int(end_str) if end_str else None
             if start is not None and start > 0:
-                start -= 1
+                start -= 1 # Convert 1-based to 0-based
 
             indices = range(*slice(start, end, None).indices(total_lines))
             selected_indices.update(indices)
@@ -62,7 +70,7 @@ def get_content_slice(content, lines_spec):
 
     sorted_indices = sorted(list(selected_indices))
     output_blocks, current_block = [], []
-    last_index = -2
+    last_index = -2 # Guarantees the first line starts a new block
 
     for index in sorted_indices:
         if index > last_index + 1 and current_block:
@@ -76,39 +84,23 @@ def get_content_slice(content, lines_spec):
         output_blocks.append("\n".join(current_block))
 
     final_content = "\n\n[... content truncated ...]\n\n".join(output_blocks)
-
     return final_content, f"(lines {lines_spec})"
 
 
-def generate_context(found_files, lines=None):
+def generate_context(files_with_content, lines=None):
     """
-    Reads a list of files and formats them into a single string for an LLM context.
+    Formats the content of pre-read files into a single string.
     """
     output_parts = []
-    skipped_count = 0
+    for filepath, full_content in files_with_content:
+        content_to_use = full_content
+        slice_desc = ""
 
-    for filepath in found_files:
-        try:
-            with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
-                full_content = f.read()
-
-            # Skip files that are empty or contain only whitespace
-            if not full_content.strip():
-                skipped_count += 1
-                continue
-            
-            content_to_use = full_content
-            slice_desc = ""
-
-            if lines:
-                content_to_use, slice_desc = get_content_slice(full_content, lines)
-            
-            # Re-adding the slice description to the header for clarity
-            header = f"{filepath} {slice_desc}".strip()
-            output_parts.append(f"{header}\n```\n{content_to_use}\n```")
-
-        except Exception as e:
-            output_parts.append(f"Error reading file {filepath}: {e}")
+        if lines:
+            content_to_use, slice_desc = get_content_slice(full_content, lines)
+        
+        header = f"{filepath} {slice_desc}".strip()
+        output_parts.append(f"{header}\n```\n{content_to_use}\n```")
 
     return "\n\n".join(output_parts)
 
@@ -118,59 +110,31 @@ def main():
         description="Generate a formatted context of code files for LLMs.",
         formatter_class=argparse.RawTextHelpFormatter
     )
+    parser.add_argument("patterns", help="A comma-separated string of glob patterns.")
+    parser.add_argument("-c", "--clipboard", action="store_true", help="Copy output to clipboard.")
+    parser.add_argument("-l", "--list-files", action="store_true", help="List matching non-empty files and exit.")
     parser.add_argument(
-        "patterns",
-        help="A comma-separated string of glob patterns to find files.\n"
-             "Example: 'src/**/*.py,tests/test_*.py'"
-    )
-    parser.add_argument(
-        "-c", "--clipboard",
-        action="store_true",
-        help="Copy the output to the clipboard instead of printing it."
-    )
-    parser.add_argument(
-        "-L", "--lines",
-        type=str,
-        metavar="SPEC",
+        "-L", "--lines", type=str, metavar="SPEC",
         help="Include specific line ranges from each file.\n"
-             "The spec is a comma-separated list of 'START:END' slices.\n"
-             "Examples:\n"
-             "  ':20'         -> First 20 lines.\n"
-             "  '-15:'        -> Last 15 lines.\n"
-             "  '50:75'       -> Lines 50 to 75.\n"
-             "  ':10,-10:'    -> First 10 AND last 10 lines."
+             "Examples: ':20', '-15:', '50:75', ':10,-10:'"
     )
-    parser.add_argument(
-        "-l", "--list-files",
-        action="store_true",
-        help="List all files matching the patterns and exit."
-    )
-    
     args = parser.parse_args()
     
-    found_files = find_files(args.patterns)
+    # Find and read all non-empty files once.
+    files_with_content = find_and_read_files(args.patterns)
     
-    if not found_files:
-        print("No files found matching the provided patterns.", file=sys.stderr)
+    if not files_with_content:
+        print("No non-empty files found matching the provided patterns.", file=sys.stderr)
         sys.exit(0)
 
     if args.list_files:
-        for filepath in found_files:
+        for filepath, _ in files_with_content:
             print(filepath)
         sys.exit(0)
 
-    generated_context = generate_context(found_files, args.lines)
+    generated_context = generate_context(files_with_content, args.lines)
     
-    # If all files were skipped, the context will be empty.
-    if not generated_context.strip():
-        print("All matched files were empty. No context generated.", file=sys.stderr)
-        sys.exit(0)
-
-    # Using your CODE CONTEXT wrapper
-    context_string = f"""CODE CONTEXT
-
-{generated_context}
-"""
+    context_string = f"CODE CONTEXT\n\n{generated_context}"
 
     if args.clipboard:
         try:
@@ -179,8 +143,7 @@ def main():
             print("✅ Context copied to clipboard!")
         except Exception as e:
             print(f"Error: Could not copy to clipboard. Is 'xclip' installed?", file=sys.stderr)
-            print(f"({e})", file=sys.stderr)
-            print("\n--- Fallback: Printing to console ---\n", file=sys.stderr)
+            print(f"({e})\n\n--- Fallback: Printing to console ---\n", file=sys.stderr)
             print(context_string)
     else:
         print(context_string)
