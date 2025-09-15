@@ -3,6 +3,7 @@ import argparse
 import glob
 from pathlib import Path
 import sys
+import re
 
 """
 Generates a formatted context of code files for Large Language Models.
@@ -15,14 +16,26 @@ REQUIREMENTS:
     pip install pyperclip
 """
 
-def find_and_read_files(patterns_string):
+def find_and_read_files(patterns_string, content_filters=None):
     """
     Finds all unique, sorted file paths matching the glob patterns,
     skipping any files that are empty or contain only whitespace.
+    Optionally filters files based on content regex patterns.
     Returns a list of tuples: [(pathlib.Path, str_content), ...].
     """
     patterns = [p.strip() for p in patterns_string.split(',')]
     found_files = {} # Use a dict to store Path: content, ensuring uniqueness
+    
+    # Compile regex patterns for content filtering
+    compiled_filters = []
+    if content_filters:
+        filter_patterns = [p.strip() for p in content_filters.split(',')]
+        for pattern in filter_patterns:
+            try:
+                compiled_filters.append(re.compile(pattern, re.MULTILINE | re.IGNORECASE))
+            except re.error as e:
+                print(f"Error: Invalid regex pattern '{pattern}': {e}", file=sys.stderr)
+                sys.exit(1)
 
     for pattern in patterns:
         for match in glob.glob(pattern, recursive=True):
@@ -31,9 +44,15 @@ def find_and_read_files(patterns_string):
             if path.is_file() and path.stat().st_size > 0:
                 try:
                     content = path.read_text(encoding='utf-8', errors='ignore')
-                    # If content is not just whitespace, add it
+                    # If content is not just whitespace, check content filters
                     if content.strip():
-                        found_files[path] = content
+                        # Apply content filtering if filters are specified
+                        if compiled_filters:
+                            matches_filter = any(regex.search(content) for regex in compiled_filters)
+                            if matches_filter:
+                                found_files[path] = content
+                        else:
+                            found_files[path] = content
                 except Exception as e:
                     print(f"Warning: Could not read file {path}: {e}", file=sys.stderr)
     
@@ -118,13 +137,22 @@ def main():
         help="Include specific line ranges from each file.\n"
              "Examples: ':20', '-15:', '50:75', ':10,-10:'"
     )
+    parser.add_argument(
+        "-f", "--filter", type=str, metavar="REGEX_PATTERNS",
+        help="Include only files whose content matches one or more regex patterns.\n"
+             "Comma-separated list of regex patterns (case-insensitive).\n"
+             "Examples: 'function.*main', 'class.*Test,def.*setup', 'TODO|FIXME'"
+    )
     args = parser.parse_args()
     
-    # Find and read all non-empty files once.
-    files_with_content = find_and_read_files(args.patterns)
+    # Find and read all non-empty files once, with optional content filtering.
+    files_with_content = find_and_read_files(args.patterns, args.filter)
     
     if not files_with_content:
-        print("No non-empty files found matching the provided patterns.", file=sys.stderr)
+        if args.filter:
+            print("No non-empty files found matching the provided patterns and content filters.", file=sys.stderr)
+        else:
+            print("No non-empty files found matching the provided patterns.", file=sys.stderr)
         sys.exit(0)
 
     if args.list_files:
