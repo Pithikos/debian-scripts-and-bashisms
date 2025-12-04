@@ -11,7 +11,7 @@ Generates a formatted context of code files for Large Language Models.
 REQUIREMENTS:
     # On Debian/Ubuntu for clipboard support
     sudo apt install xclip
-    
+
     # Python dependency for clipboard
     pip install pyperclip
 """
@@ -23,9 +23,19 @@ def find_and_read_files(patterns_string, content_filters=None):
     Optionally filters files based on content regex patterns.
     Returns a list of tuples: [(pathlib.Path, str_content), ...].
     """
+    # Default ignore patterns
+    ignore_patterns = {
+        '*.pyc', '*.pyo', '*.pyd', '__pycache__',
+        '*.so', '*.dylib', '*.dll',
+        '*.class', '*.o', '*.obj',
+        '.git', '.svn', '.hg',
+        'node_modules', '.DS_Store',
+        '*.min.js', '*.min.css'
+    }
+
     patterns = [p.strip() for p in patterns_string.split(',')]
-    found_files = {} # Use a dict to store Path: content, ensuring uniqueness
-    
+    found_files = {}
+
     # Compile regex patterns for content filtering
     compiled_filters = []
     if content_filters:
@@ -40,13 +50,15 @@ def find_and_read_files(patterns_string, content_filters=None):
     for pattern in patterns:
         for match in glob.glob(pattern, recursive=True):
             path = Path(match)
-            # Ensure it's a file and check size as a quick optimization
+
+            # Check if path matches any ignore pattern
+            if any(path.match(ignore) for ignore in ignore_patterns):
+                continue
+
             if path.is_file() and path.stat().st_size > 0:
                 try:
                     content = path.read_text(encoding='utf-8', errors='ignore')
-                    # If content is not just whitespace, check content filters
                     if content.strip():
-                        # Apply content filtering if filters are specified
                         if compiled_filters:
                             matches_filter = any(regex.search(content) for regex in compiled_filters)
                             if matches_filter:
@@ -55,8 +67,7 @@ def find_and_read_files(patterns_string, content_filters=None):
                             found_files[path] = content
                 except Exception as e:
                     print(f"Warning: Could not read file {path}: {e}", file=sys.stderr)
-    
-    # Sort by path and return as a list of tuples
+
     sorted_paths = sorted(found_files.keys())
     return [(path, found_files[path]) for path in sorted_paths]
 
@@ -83,7 +94,7 @@ def get_content_slice(content, lines_spec):
         except (ValueError, TypeError):
             print(f"Error: Invalid slice format in --lines. Use 'START:END'. Got: '{req}'", file=sys.stderr)
             sys.exit(1)
-    
+
     if not selected_indices:
         return "", f"(no lines selected from spec '{lines_spec}')"
 
@@ -95,7 +106,7 @@ def get_content_slice(content, lines_spec):
         if index > last_index + 1 and current_block:
             output_blocks.append("\n".join(current_block))
             current_block = []
-        
+
         current_block.append(all_lines[index])
         last_index = index
 
@@ -117,7 +128,7 @@ def generate_context(files_with_content, lines=None):
 
         if lines:
             content_to_use, slice_desc = get_content_slice(full_content, lines)
-        
+
         header = f"{filepath} {slice_desc}".strip()
         output_parts.append(f"{header}\n```\n{content_to_use}\n```")
 
@@ -144,10 +155,10 @@ def main():
              "Examples: 'function.*main', 'class.*Test,def.*setup', 'TODO|FIXME'"
     )
     args = parser.parse_args()
-    
+
     # Find and read all non-empty files once, with optional content filtering.
     files_with_content = find_and_read_files(args.patterns, args.filter)
-    
+
     if not files_with_content:
         if args.filter:
             print("No non-empty files found matching the provided patterns and content filters.", file=sys.stderr)
@@ -161,7 +172,7 @@ def main():
         sys.exit(0)
 
     generated_context = generate_context(files_with_content, args.lines)
-    
+
     context_string = f"CODE CONTEXT\n\n{generated_context}"
 
     if args.clipboard:
