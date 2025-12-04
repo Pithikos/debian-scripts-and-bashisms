@@ -181,9 +181,7 @@ def main():
             pyperclip.copy(context_string)
             print("✅ Context copied to clipboard!")
         except Exception as e:
-            print(f"Error: Could not copy to clipboard. Is 'xclip' installed?", file=sys.stderr)
-            print(f"({e})\n\n--- Fallback: Printing to console ---\n", file=sys.stderr)
-            print(context_string)
+            print(f"Error: Could not copy to clipboard. Are dependencies (pyperclip + xclip) installed?", file=sys.stderr)
     else:
         print(context_string)
 
