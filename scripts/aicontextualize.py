@@ -5,185 +5,168 @@ from pathlib import Path
 import sys
 import re
 
-"""
-Generates a formatted context of code files for Large Language Models.
+def parse_patterns(patterns_string):
+    """
+    Splits patterns into include and exclude glob patterns.
+    Excludes are prefixed with '-'.
+    """
+    includes = []
+    excludes = []
 
-REQUIREMENTS:
-    # On Debian/Ubuntu for clipboard support
-    sudo apt install xclip
+    for raw in patterns_string.split(","):
+        p = raw.strip()
+        if not p:
+            continue
+        if p.startswith("-"):
+            excludes.append(p[1:])
+        else:
+            includes.append(p)
 
-    # Python dependency for clipboard
-    pip install pyperclip
-"""
+    if not includes:
+        print("Error: At least one include pattern is required.", file=sys.stderr)
+        sys.exit(1)
+
+    return includes, excludes
+
+
+def is_excluded(path: Path, exclude_patterns):
+    """
+    Checks whether a path matches any exclude glob.
+    """
+    for pat in exclude_patterns:
+        if path.match(pat) or any(parent.match(pat) for parent in path.parents):
+            return True
+    return False
+
 
 def find_and_read_files(patterns_string, content_filters=None):
-    """
-    Finds all unique, sorted file paths matching the glob patterns,
-    skipping any files that are empty or contain only whitespace.
-    Optionally filters files based on content regex patterns.
-    Returns a list of tuples: [(pathlib.Path, str_content), ...].
-    """
-    # Default ignore patterns
-    ignore_patterns = {
-        '*.pyc', '*.pyo', '*.pyd', '__pycache__',
-        '*.so', '*.dylib', '*.dll',
-        '*.class', '*.o', '*.obj',
-        '.git', '.svn', '.hg',
-        'node_modules', '.DS_Store',
-        '*.min.js', '*.min.css'
-    }
-
-    patterns = [p.strip() for p in patterns_string.split(',')]
+    includes, excludes = parse_patterns(patterns_string)
     found_files = {}
 
-    # Compile regex patterns for content filtering
     compiled_filters = []
     if content_filters:
-        filter_patterns = [p.strip() for p in content_filters.split(',')]
-        for pattern in filter_patterns:
+        for p in content_filters.split(","):
             try:
-                compiled_filters.append(re.compile(pattern, re.MULTILINE | re.IGNORECASE))
+                compiled_filters.append(re.compile(p.strip(), re.I | re.M))
             except re.error as e:
-                print(f"Error: Invalid regex pattern '{pattern}': {e}", file=sys.stderr)
+                print(f"Invalid regex '{p}': {e}", file=sys.stderr)
                 sys.exit(1)
 
-    for pattern in patterns:
+    for pattern in includes:
         for match in glob.glob(pattern, recursive=True):
             path = Path(match)
 
-            # Check if path matches any ignore pattern
-            if any(path.match(ignore) for ignore in ignore_patterns):
+            if is_excluded(path, excludes):
                 continue
 
-            if path.is_file() and path.stat().st_size > 0:
-                try:
-                    content = path.read_text(encoding='utf-8', errors='ignore')
-                    if content.strip():
-                        if compiled_filters:
-                            matches_filter = any(regex.search(content) for regex in compiled_filters)
-                            if matches_filter:
-                                found_files[path] = content
-                        else:
-                            found_files[path] = content
-                except Exception as e:
-                    print(f"Warning: Could not read file {path}: {e}", file=sys.stderr)
+            if not path.is_file():
+                continue
 
-    sorted_paths = sorted(found_files.keys())
-    return [(path, found_files[path]) for path in sorted_paths]
+            if path.stat().st_size == 0:
+                continue
+
+            try:
+                content = path.read_text(encoding="utf-8", errors="ignore")
+            except Exception as e:
+                print(f"Warning: could not read {path}: {e}", file=sys.stderr)
+                continue
+
+            if not content.strip():
+                continue
+
+            if compiled_filters and not any(r.search(content) for r in compiled_filters):
+                continue
+
+            found_files[path] = content
+
+    return [(p, found_files[p]) for p in sorted(found_files)]
 
 
 def get_content_slice(content, lines_spec):
-    """
-    Slices the content of a file based on a comma-separated spec string.
-    Returns the sliced content and a user-friendly description.
-    """
     all_lines = content.splitlines()
-    total_lines = len(all_lines)
-    selected_indices = set()
+    total = len(all_lines)
+    selected = set()
 
-    for req in [s.strip() for s in lines_spec.split(',')]:
+    for spec in lines_spec.split(","):
         try:
-            start_str, end_str = req.split(':', 1)
-            start = int(start_str) if start_str else None
-            end = int(end_str) if end_str else None
-            if start is not None and start > 0:
-                start -= 1 # Convert 1-based to 0-based
-
-            indices = range(*slice(start, end, None).indices(total_lines))
-            selected_indices.update(indices)
-        except (ValueError, TypeError):
-            print(f"Error: Invalid slice format in --lines. Use 'START:END'. Got: '{req}'", file=sys.stderr)
+            a, b = spec.split(":", 1)
+            start = int(a) - 1 if a else None
+            end = int(b) if b else None
+            selected.update(range(*slice(start, end).indices(total)))
+        except Exception:
+            print(f"Invalid --lines spec: {spec}", file=sys.stderr)
             sys.exit(1)
 
-    if not selected_indices:
-        return "", f"(no lines selected from spec '{lines_spec}')"
+    if not selected:
+        return "", "(no lines selected)"
 
-    sorted_indices = sorted(list(selected_indices))
-    output_blocks, current_block = [], []
-    last_index = -2 # Guarantees the first line starts a new block
+    blocks, block = [], []
+    last = -2
 
-    for index in sorted_indices:
-        if index > last_index + 1 and current_block:
-            output_blocks.append("\n".join(current_block))
-            current_block = []
+    for i in sorted(selected):
+        if i > last + 1 and block:
+            blocks.append("\n".join(block))
+            block = []
+        block.append(all_lines[i])
+        last = i
 
-        current_block.append(all_lines[index])
-        last_index = index
+    if block:
+        blocks.append("\n".join(block))
 
-    if current_block:
-        output_blocks.append("\n".join(current_block))
-
-    final_content = "\n\n[... content truncated ...]\n\n".join(output_blocks)
-    return final_content, f"(lines {lines_spec})"
+    return "\n\n[...]\n\n".join(blocks), f"(lines {lines_spec})"
 
 
-def generate_context(files_with_content, lines=None):
-    """
-    Formats the content of pre-read files into a single string.
-    """
-    output_parts = []
-    for filepath, full_content in files_with_content:
-        content_to_use = full_content
+def generate_context(files, lines=None):
+    out = []
+    for path, content in files:
         slice_desc = ""
-
         if lines:
-            content_to_use, slice_desc = get_content_slice(full_content, lines)
+            content, slice_desc = get_content_slice(content, lines)
 
-        header = f"{filepath} {slice_desc}".strip()
-        output_parts.append(f"{header}\n```\n{content_to_use}\n```")
+        out.append(f"{path} {slice_desc}\n```\n{content}\n```")
 
-    return "\n\n".join(output_parts)
+    return "\n\n".join(out)
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Generate a formatted context of code files for LLMs.",
-        formatter_class=argparse.RawTextHelpFormatter
+    parser = argparse.ArgumentParser()
+    parser.add_argument("patterns", help="Glob patterns. Prefix with '-' to exclude.")
+    parser.add_argument("-p", "--print", action="store_true", help="Print file contents.")
+    parser.add_argument("-c", "--clipboard", action="store_true", help="Copy output to clipboard (implies --print).")
+    parser.add_argument("-l", "--lines", help="Line slices (e.g. :20,10:50)")
+    parser.add_argument("-f", "--filter", metavar="REGEX",
+        help=(
+            "Filter by file CONTENT using regex (not glob).\n"
+            "Comma-separated patterns; file is included if ANY match.\n"
+            "Examples: 'TODO|FIXME', 'class\\s+Actor,def\\s+run'"
+        )
     )
-    parser.add_argument("patterns", help="A comma-separated string of glob patterns.")
-    parser.add_argument("-c", "--clipboard", action="store_true", help="Copy output to clipboard.")
-    parser.add_argument("-l", "--list-files", action="store_true", help="List matching non-empty files and exit.")
-    parser.add_argument(
-        "-L", "--lines", type=str, metavar="SPEC",
-        help="Include specific line ranges from each file.\n"
-             "Examples: ':20', '-15:', '50:75', ':10,-10:'"
-    )
-    parser.add_argument(
-        "-f", "--filter", type=str, metavar="REGEX_PATTERNS",
-        help="Include only files whose content matches one or more regex patterns.\n"
-             "Comma-separated list of regex patterns (case-insensitive).\n"
-             "Examples: 'function.*main', 'class.*Test,def.*setup', 'TODO|FIXME'"
-    )
+
     args = parser.parse_args()
 
-    # Find and read all non-empty files once, with optional content filtering.
-    files_with_content = find_and_read_files(args.patterns, args.filter)
+    files = find_and_read_files(args.patterns, args.filter)
 
-    if not files_with_content:
-        if args.filter:
-            print("No non-empty files found matching the provided patterns and content filters.", file=sys.stderr)
-        else:
-            print("No non-empty files found matching the provided patterns.", file=sys.stderr)
+    if not files:
+        print("No matching files.")
         sys.exit(0)
 
-    if args.list_files:
-        for filepath, _ in files_with_content:
-            print(filepath)
+    if not (args.print or args.clipboard):
+        for path, _ in files:
+            print(path)
         sys.exit(0)
 
-    generated_context = generate_context(files_with_content, args.lines)
-
-    context_string = f"CODE CONTEXT\n\n{generated_context}"
+    context = "CODE CONTEXT\n\n" + generate_context(files, args.lines)
 
     if args.clipboard:
         try:
             import pyperclip
-            pyperclip.copy(context_string)
-            print("✅ Context copied to clipboard!")
+            pyperclip.copy(context)
+            print("✅ Copied to clipboard")
         except Exception as e:
-            print(f"Error: Could not copy to clipboard. Are dependencies (pyperclip + xclip) installed?", file=sys.stderr)
+            print(f"Clipboard error: {e}", file=sys.stderr)
     else:
-        print(context_string)
+        print(context)
+
 
 if __name__ == "__main__":
     main()
